@@ -64,6 +64,15 @@ using std::endl;
 #include "tinyxml2.h"
 using namespace tinyxml2;
 
+enum class BlockType : unsigned int
+{
+    txt,
+    tp,
+    tmp,
+    mem,
+    upd
+};
+
 enum class Token_Type
 {
     function, variable, number, comma,
@@ -99,6 +108,7 @@ std::string token_type_to_str(const Token_Type &type)
 struct Token
 {
     Token_Type type = Token_Type::unknown;
+    //BlockType  xml_type = BlockType::txt;
     std::string value = "";
     float num = 0.0f;
 
@@ -115,12 +125,18 @@ struct Tokenizer
 
     void save_state()
     {
+        if (old_token_idx != 0)
+        {
+            throw std::exception("Only one save at a time!");
+        }
+
         old_token_idx = current_token_idx;
     }
 
     void restore_state()
     {
         current_token_idx = old_token_idx;
+        old_token_idx = 0;
     }
 
     Token& current_token()
@@ -236,6 +252,7 @@ bool is_function(const std::string &fn)
 
     return true;
 }
+
 
 Tokenizer tokenize(const std::string &input)
 {
@@ -363,9 +380,34 @@ Tokenizer tokenize(const std::string &input)
     return tokenizer;
 }
 
-void parse_lookuptable(Tokenizer &tokenizer, std::ostringstream &ss)
+
+
+unsigned array_len_lookuptable(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " ";
+    tokenizer.save_state();
+
+    unsigned array_len = 0;
+    
+    do
+    {
+        tokenizer.require_token(Token_Type::comma);
+
+        tokenizer.require_token(Token_Type::number);
+        
+        ++array_len;
+
+    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+
+    tokenizer.restore_state();
+
+    return array_len;
+}
+
+void parse_function(Tokenizer &tokenizer);
+
+void parse_lookuptable(Tokenizer &tokenizer)
+{
+    cout << tokenizer.current_token().value << " "; // the name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     if (tokenizer.peek_token().type == Token_Type::variable)
@@ -375,7 +417,66 @@ void parse_lookuptable(Tokenizer &tokenizer, std::ostringstream &ss)
     else if (tokenizer.peek_token().type == Token_Type::function)
     {
         tokenizer.next_token();
-        parse_lookuptable(tokenizer, ss);
+        parse_function(tokenizer);
+    }
+    else
+    {
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type);
+        throw std::exception(error.c_str());
+    }
+    cout << ", ";
+    
+    unsigned array_len = array_len_lookuptable(tokenizer);
+    
+    if ((array_len % 2) != 0)
+    {
+        throw std::exception("Expected even number of elements in array");
+    }
+
+    unsigned half_array_len = array_len / 2;
+    unsigned args_counter = 1;
+    
+    cout << " [";
+    do
+    {
+        tokenizer.require_token(Token_Type::comma);
+
+        Token &token = tokenizer.require_token(Token_Type::number);
+
+        if (args_counter == half_array_len)
+        {
+            cout << std::fixed << token.num << "], [";
+        }
+        else
+        {
+            cout << std::fixed << token.num << ", ";
+        }
+
+        ++args_counter;
+
+    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    cout << "]";
+
+    cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
+
+    //cout << ss.str() << endl;
+    int stop = 0;
+}
+
+
+void parse_interpolation_1d(Tokenizer &tokenizer)
+{
+    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
+
+    if (tokenizer.peek_token().type == Token_Type::variable)
+    {
+        cout << tokenizer.next_token().value << " ";
+    }
+    else if (tokenizer.peek_token().type == Token_Type::function)
+    {
+        tokenizer.next_token();
+        parse_function(tokenizer);
     }
     else
     {
@@ -383,112 +484,72 @@ void parse_lookuptable(Tokenizer &tokenizer, std::ostringstream &ss)
         throw std::exception(error.c_str());
     }
 
-    cout << tokenizer.require_token(Token_Type::comma).value;
-    tokenizer.require_token(Token_Type::number);
+    cout << tokenizer.require_token(Token_Type::comma).value << " ";
 
-    tokenizer.save_state();
-
-    unsigned values = 0;
-    do
+    if (tokenizer.peek_token().type == Token_Type::variable)
     {
-        const Token &token = tokenizer.current_token();
-
-        if (token.type == Token_Type::number)
-        {
-            //cout << "token: " << token.value << endl;
-            ++values;
-        }
-    } while (tokenizer.next_token().type != Token_Type::close_curly_bracket);
-
-    tokenizer.restore_state();
-
-    if ((values % 2) != 0)
-    {
-        throw std::exception("Expected even number of elements in array");
+        cout << tokenizer.next_token().value << " ";
     }
-    unsigned cols = values / 2;
-    unsigned col = 1;
-    
+    else if (tokenizer.peek_token().type == Token_Type::function)
+    {
+        tokenizer.next_token();
+        parse_interpolation_1d(tokenizer);
+    }
+    else
+    {
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type);
+        throw std::exception(error.c_str());
+    }
+
+    cout << ", ";
+
     cout << " [";
     do
     {
-        const Token &token = tokenizer.current_token();
+        tokenizer.require_token(Token_Type::comma);
 
-        if (token.type == Token_Type::number)
-        {
-            if (col == cols)
-            {
-                cout << std::fixed << token.num << "], [";
-                tokenizer.next_token(); // skip the next ','
-            }
-            else
-            {
-                cout << std::fixed << token.num;
-            }
-            ++col;
-        }
-        else
-        {
-            cout << token.value << " ";
-        }
-    } while (tokenizer.next_token().type != Token_Type::close_curly_bracket);
+        Token &token = tokenizer.require_token(Token_Type::number);
+
+        cout << std::fixed << token.num << ", ";
+        
+    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
     cout << "]";
-    cout << tokenizer.current_token().value;
 
-    //cout << ss.str() << endl;
+    cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
+
     int stop = 0;
+}
+
+void parse_function(Tokenizer &tokenizer)
+{
+    const Token &token = tokenizer.current_token();
+
+    if (token.value == "lookuptable")
+    {
+        parse_lookuptable(tokenizer);
+    }
+    else if (token.value == "interpolation")
+    {
+        parse_interpolation_1d(tokenizer);
+    }
 }
 
 void parse(const std::string &input)
 {
     Tokenizer tokenizer = tokenize(input);
 
+    std::ostringstream ss;
+    
     do
     {
         const Token &token = tokenizer.current_token();
 
         if (token.type == Token_Type::function)
         {
-            if (token.value == "lookuptable")
-            {
-                std::ostringstream ss;
-                parse_lookuptable(tokenizer, ss);
-            }
+            parse_function(tokenizer);
         }
+
     } while (tokenizer.next_token().type != Token_Type::end_of_tokens);
-
-
-#if 0
-    cout << "Before:" << endl << "  " << input << endl;
-
-    tokenizer tokenizer = tokenize(input);
-
-    cout << "After:" << endl << "  ";
-    for (token &token : tokenizer.tokens)
-    {
-        if (token.type == token_type::unknown)
-        {
-            std::string error = "unknown token found in pos: " + std::to_string(token.col) + " value: " + token.value;
-            throw std::exception(error.c_str());
-        }
-
-        if (token.type == token_type::number)
-            cout << token.num << " ";
-        else
-            cout << token.value << " ";
-    }
-
-    int count_fn = std::count_if(tokenizer.tokens.begin(), tokenizer.tokens.end(), [](const token &token) {
-        return (token.type == token_type::function);
-    });
-    int count_var = std::count_if(tokenizer.tokens.begin(), tokenizer.tokens.end(), [](const token &token) {
-        return (token.type == token_type::variable);
-    });
-
-    cout << endl << "function/s found: " << count_fn << " var found: " << count_var;
-
-    cout << endl << endl;
-#endif
 
 }
 
@@ -524,12 +585,26 @@ int main(int argc, char* argv[])
     {
         std::string test_input;
 
-        test_input = "lookuptable { lookuptable { lookuptable { CLW07_FLAPS, -10.0, 20.0}, -10.0, 20.0}, 30.0, -40.0}";
+        test_input = "interpolation{ var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+        test_input = "interpolation{ interpolation{ var1, var2, 1.0, -45.9}, var3, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+        test_input = "interpolation{ var3, interpolation{ var1, var2, 1.0, -45.9}, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+        test_input = "interpolation{ interpolation{ var1, var2, 3.14, -45.9}, interpolation{ var3, var4, 7.0, -88.9}, 1.0, -3.0, -4.0, 5.0 }";
+        test_input = "interpolation { BF_CLC03_GOVLIM_IDX03_INDEX, BF_CLC03_GOVLIM_IDX03_ALPHA, 7.5000000000, 16.0000000000, 25.0000000000, 40.5000000000, 35.5000000000}";
+        
+        test_input = "lookuptable { interpolation{ var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, -10.0, 20.0}";
+
+        cout << "INPUT: " << test_input << endl << endl;
         parse(test_input);
+        cout << endl << endl;
 
 #if 0
+        test_input = "lookuptable { lookuptable { lookuptable { CLW07_FLAPS, -10.0, 20.0}, -10.0, 20.0}, 30.0, -40.0}";
+        parse(test_input);
+        cout << endl << endl;
+
         test_input = ss.str();
         parse(test_input);
+        cout << endl << endl;
 
         test_input = "interpolation { BF_CLC03_GOVLIM_IDX03_INDEX, BF_CLC03_GOVLIM_IDX03_ALPHA, 7.5000000000, 16.0000000000, 25.0000000000, 40.5000000000, 35.5000000000}";
         parse(test_input);
@@ -546,7 +621,7 @@ int main(int argc, char* argv[])
 
     } catch (const std::exception &e)
     {
-        std::cout << "[EXCEPTION] " << e.what() << endl;
+        std::cout << endl << endl << "[EXCEPTION] " << e.what() << endl;
         int stop = 0;
     }
 
