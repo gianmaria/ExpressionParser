@@ -57,6 +57,8 @@ searchalpha{
 #include <algorithm> // count_if
 #include <sstream> // ostringstream
 
+#include <cstdio> // getc
+
 using std::cout;
 using std::endl;
 
@@ -112,14 +114,17 @@ struct Token
     std::string value = "";
     float num = 0.0f;
 
-    unsigned row = 0;
-    unsigned col = 0;
+    unsigned line = 1;
+    unsigned col = 1;
 };
 
 struct Tokenizer
 {
     std::string input = "";
     std::vector<Token> tokens;
+    unsigned line = 1;
+    unsigned col = 1;
+
     unsigned current_token_idx = 0;
     unsigned old_token_idx = 0;
 
@@ -165,14 +170,14 @@ struct Tokenizer
     Token& peek_token()
     {
         ++current_token_idx;
-        
+
         Token &token = current_token();
-        
+
         --current_token_idx;
 
         return token;
     }
-    
+
     Token& prev_token()
     {
         if (current_token_idx > 0)
@@ -195,8 +200,9 @@ struct Tokenizer
 
         if (token.type != type)
         {
-            std::string error = "Expected token: *" + token_type_to_str(type) + "*" +
-                                "  found: *" + token_type_to_str(token.type) + "*";
+            std::string error = "Expected token: *" + token_type_to_str(type) + "*   " +
+                "found: *" + token_type_to_str(token.type) + "*  " +
+                "Line:" + std::to_string(token.line) + " Col:" + std::to_string(token.col);
             throw std::exception(error.c_str());
         }
 
@@ -259,12 +265,14 @@ Tokenizer tokenize(const std::string &input)
     Tokenizer tokenizer;
     tokenizer.input = input;
 
-    for (unsigned pos = 0;
-         pos < input.size();
-         )
+    unsigned index = 0;
+    while (index < input.size())
     {
         Token token;
-        char c = input[pos];
+        token.line = tokenizer.line;
+        token.col = tokenizer.col;
+
+        char c = input[index];
 
         switch (c)
         {
@@ -272,45 +280,45 @@ Tokenizer tokenize(const std::string &input)
             {
                 token.type = Token_Type::comma;
                 token.value = ",";
-                token.col = pos + 1;
-
-                ++pos;
             } break;
 
             case '{':
             {
                 token.type = Token_Type::open_curly_bracket;
                 token.value = "{";
-                token.col = pos + 1;
-
-                ++pos;
             } break;
 
             case '}':
             {
                 token.type = Token_Type::close_curly_bracket;
                 token.value = "}";
-                token.col = pos + 1;
-
-                ++pos;
             } break;
 
-            case '-':
+            case '-': // @TODO: parsare i numeri negativi direttamente qui?
             {
                 token.type = Token_Type::minus_sign;
                 token.value = "-";
-                token.col = pos + 1;
-
-                ++pos;
             } break;
 
             case '+':
             {
                 token.type = Token_Type::plus_sign;
                 token.value = "+";
-                token.col = pos + 1;
+            } break;
 
-                ++pos;
+            case ' ':
+            {
+                tokenizer.col += 1;
+                index += 1;
+                continue;
+            } break;
+
+            case '\n':
+            {
+                tokenizer.col = 1;
+                tokenizer.line += 1;
+                index += 1;
+                continue;
             } break;
 
             default:
@@ -318,57 +326,44 @@ Tokenizer tokenize(const std::string &input)
                 if (std::isdigit(c))
                 {
                     float num = 0;
-                    unsigned number_len = read_number(input.substr(pos), num);
+                    unsigned number_len = read_number(input.substr(index), num);
 
                     token.type = Token_Type::number;
-                    token.value = input.substr(pos, number_len);
+                    token.value = input.substr(index, number_len);
                     token.num = num;
-                    token.col = pos + 1;
+
+                    tokenizer.col += (unsigned)token.value.length();
+                    index += (unsigned)token.value.length();
 
                     Token &last_token = tokenizer.tokens.back();
                     if (last_token.type == Token_Type::minus_sign)
                     {
-                        token.value = "-" + token.value;
+                        token.value = "-" + token.value; // @TODO: lasciare il numero senza il segno
                         token.num = -token.num;
 
                         tokenizer.tokens.pop_back();
                     }
 
-                    pos += number_len;
+                    tokenizer.tokens.push_back(token);
+                    continue;
                 }
                 else if (std::isalpha(c))
                 {
-                    std::string str = read_str(input.substr(pos));
+                    std::string str = read_str(input.substr(index));
 
-                    if (is_function(str))
-                    {
-                        token.type = Token_Type::function;
-                        token.value = str;
-                        token.col = pos + 1;
-                    }
-                    else
-                    {
-                        token.type = Token_Type::variable;
-                        token.value = str;
-                        token.col = pos + 1;
-                    }
-
-                    pos += (unsigned)str.length();
-                }
-                else if (std::isspace(c))
-                {
-                    ++pos;
-                    continue;
+                    token.type = is_function(str) ? Token_Type::function : Token_Type::variable;
+                    token.value = str;
                 }
                 else
                 {
-                    std::string error = "Invalid char: '";
-                    error.push_back(c);
-                    error += "'";
+                    std::string error = "Invalid char: '"; error.push_back(c); error += "'";
                     throw std::exception(error.c_str());
                 }
             }
         }
+
+        tokenizer.col += (unsigned)token.value.length();
+        index += (unsigned)token.value.length();
 
         tokenizer.tokens.push_back(token);
     }
@@ -387,13 +382,13 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer)
     tokenizer.save_state();
 
     unsigned array_len = 0;
-    
+
     do
     {
         tokenizer.require_token(Token_Type::comma);
 
         tokenizer.require_token(Token_Type::number);
-        
+
         ++array_len;
 
     } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
@@ -421,13 +416,14 @@ void parse_lookuptable(Tokenizer &tokenizer)
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type);
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
+            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
         throw std::exception(error.c_str());
     }
     cout << ", ";
-    
+
     unsigned array_len = array_len_lookuptable(tokenizer);
-    
+
     if ((array_len % 2) != 0)
     {
         throw std::exception("Expected even number of elements in array");
@@ -435,7 +431,7 @@ void parse_lookuptable(Tokenizer &tokenizer)
 
     unsigned half_array_len = array_len / 2;
     unsigned args_counter = 1;
-    
+
     cout << " [";
     do
     {
@@ -480,7 +476,8 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type);
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
+            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
         throw std::exception(error.c_str());
     }
 
@@ -493,11 +490,12 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
     else if (tokenizer.peek_token().type == Token_Type::function)
     {
         tokenizer.next_token();
-        parse_interpolation_1d(tokenizer);
+        parse_function(tokenizer);
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type);
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
+            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
         throw std::exception(error.c_str());
     }
 
@@ -511,7 +509,87 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
         Token &token = tokenizer.require_token(Token_Type::number);
 
         cout << std::fixed << token.num << ", ";
-        
+
+    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    cout << "]";
+
+    cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
+
+    int stop = 0;
+}
+
+void parse_searchindex(Tokenizer &tokenizer)
+{
+    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
+
+    if (tokenizer.peek_token().type == Token_Type::variable)
+    {
+        cout << tokenizer.next_token().value << " ";
+    }
+    else if (tokenizer.peek_token().type == Token_Type::function)
+    {
+        tokenizer.next_token();
+        parse_function(tokenizer);
+    }
+    else
+    {
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
+            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+        throw std::exception(error.c_str());
+    }
+
+    cout << ", ";
+
+    cout << " [";
+    do
+    {
+        tokenizer.require_token(Token_Type::comma);
+
+        Token &token = tokenizer.require_token(Token_Type::number);
+
+        cout << std::fixed << token.num << ", ";
+
+    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    cout << "]";
+
+    cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
+
+    int stop = 0;
+}
+
+void parse_searchalpha(Tokenizer &tokenizer)
+{
+    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
+
+    if (tokenizer.peek_token().type == Token_Type::variable)
+    {
+        cout << tokenizer.next_token().value << " ";
+    }
+    else if (tokenizer.peek_token().type == Token_Type::function)
+    {
+        tokenizer.next_token();
+        parse_function(tokenizer);
+    }
+    else
+    {
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
+            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+        throw std::exception(error.c_str());
+    }
+
+    cout << ", ";
+
+    cout << " [";
+    do
+    {
+        tokenizer.require_token(Token_Type::comma);
+
+        Token &token = tokenizer.require_token(Token_Type::number);
+
+        cout << std::fixed << token.num << ", ";
+
     } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
     cout << "]";
 
@@ -532,6 +610,15 @@ void parse_function(Tokenizer &tokenizer)
     {
         parse_interpolation_1d(tokenizer);
     }
+    else if (token.value == "searchindex")
+    {
+        parse_searchindex(tokenizer);
+    }
+    else if (token.value == "searchalpha")
+    {
+        parse_searchalpha(tokenizer);
+    }
+
 }
 
 void parse(const std::string &input)
@@ -539,7 +626,7 @@ void parse(const std::string &input)
     Tokenizer tokenizer = tokenize(input);
 
     std::ostringstream ss;
-    
+
     do
     {
         const Token &token = tokenizer.current_token();
@@ -553,7 +640,8 @@ void parse(const std::string &input)
 
 }
 
-int main(int argc, char* argv[])
+
+int main()
 {
     //  R "delimiter( raw_characters )delimiter"	
     //std::string input_xml_str = R"FOO(raw string yo!)FOO";
@@ -590,10 +678,33 @@ int main(int argc, char* argv[])
         test_input = "interpolation{ var3, interpolation{ var1, var2, 1.0, -45.9}, 1.0, 2.0, -3.0, -4.0, 5.0 }";
         test_input = "interpolation{ interpolation{ var1, var2, 3.14, -45.9}, interpolation{ var3, var4, 7.0, -88.9}, 1.0, -3.0, -4.0, 5.0 }";
         test_input = "interpolation { BF_CLC03_GOVLIM_IDX03_INDEX, BF_CLC03_GOVLIM_IDX03_ALPHA, 7.5000000000, 16.0000000000, 25.0000000000, 40.5000000000, 35.5000000000}";
-        
-        test_input = "lookuptable { interpolation{ var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, -10.0, 20.0}";
+        test_input = "lookuptable { interpolation { var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, -10.0, 20.0}";
+        test_input = "searchindex{ var4, 4, 5, -6}";
+        test_input = "searchindex{ searchindex{ var1, 1}, 4, 5, -6}";
+        test_input = R"FOO(
+searchindex {
+    interpolation {
+        interpolation { var1, var2, 3.14, -45.9},
+        lookuptable {
+            interpolation { var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 },
+            -10.0, 20.0},
+        1.0, -3.0, -4.0, 5.0 },
+    -0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}
+)FOO";
 
-        cout << "INPUT: " << test_input << endl << endl;
+        test_input = R"FOO(
+searchalpha{ 
+    searchindex {
+        interpolation {
+            interpolation { var1, var2, 3.14, -45.9},
+            lookuptable {
+                interpolation { var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 },
+                -10.0, 20.0},
+            1.0, -3.0, -4.0, 5.0 },
+        -0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}, 4, 5, -6}
+)FOO";
+
+        cout << "INPUT: " << endl << test_input << endl << endl;
         parse(test_input);
         cout << endl << endl;
 
@@ -619,11 +730,14 @@ int main(int argc, char* argv[])
         parse(test_input);
 #endif // 0
 
-    } catch (const std::exception &e)
+    }
+    catch (const std::exception &e)
     {
         std::cout << endl << endl << "[EXCEPTION] " << e.what() << endl;
         int stop = 0;
     }
+
+    std::getc(stdin);
 
     return 0;
 }
