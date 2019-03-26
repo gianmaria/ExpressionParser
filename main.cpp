@@ -45,19 +45,20 @@ searchalpha{
 
 #endif
 
-#include <iostream>
+#include <iostream> // cout
 #include <string>
 #include <vector>
 #include <list>
-#include <cctype> // isalpha
-#include <cassert> // assert
-#include <cstddef> // size_t
 #include <utility> // pair
 #include <stdexcept> // exception
 #include <algorithm> // count_if
 #include <sstream> // ostringstream
+#include <tuple>
 
 #include <cstdio> // getc
+#include <cctype> // isalpha
+#include <cstddef> // size_t
+#include <cassert> // assert
 
 using std::cout;
 using std::endl;
@@ -78,7 +79,7 @@ enum class BlockType : unsigned int
 enum class Token_Type
 {
     function, variable, number, comma,
-    plus_sign, minus_sign,
+    plus_sign, minus_sign, multiply_sign,
     open_round_bracket, close_round_bracket,
     open_square_bracket, close_square_bracket,
     open_curly_bracket, close_curly_bracket,
@@ -153,7 +154,7 @@ struct Tokenizer
         }
         else
         {
-            Token &token = tokens.back(); // last token is always Token_Type::end_of_tokens
+            Token &token = tokens.back(); // last token is always end_of_tokens
             return token;
         }
     }
@@ -178,11 +179,13 @@ struct Tokenizer
         return token;
     }
 
-    Token& prev_token()
+    Token& prev_token(unsigned back = 1)
     {
-        if (current_token_idx > 0)
+        unsigned desired_token_idx = current_token_idx - back;
+
+        if (desired_token_idx < current_token_idx) // check for underflow
         {
-            Token &token = tokens[current_token_idx - 1];
+            Token &token = tokens[desired_token_idx];
 
             return token;
         }
@@ -200,8 +203,8 @@ struct Tokenizer
 
         if (token.type != type)
         {
-            std::string error = "Expected token: *" + token_type_to_str(type) + "*   " +
-                "found: *" + token_type_to_str(token.type) + "*  " +
+            std::string error = "Expected " + token_type_to_str(type) + " " +
+                "found " + token_type_to_str(token.type) + "  " +
                 "Line:" + std::to_string(token.line) + " Col:" + std::to_string(token.col);
             throw std::exception(error.c_str());
         }
@@ -211,7 +214,7 @@ struct Tokenizer
 
 };
 
-unsigned read_number(const std::string &input, float &num)
+unsigned read_float(const std::string &input, float &num)
 {
     unsigned pos_end_of_num = 0;
 
@@ -248,7 +251,7 @@ std::string read_str(const std::string &input)
     return ret.str();
 }
 
-std::list<std::string> function_list = { "lookuptable", "interpolation", "searchindex", "searchalpha", "interpolation2D" };
+std::list<std::string> function_list = { "lookuptable", "interpolation", "searchindex", "searchalpha", "interpolation2d" };
 
 bool is_function(const std::string &fn)
 {
@@ -306,6 +309,12 @@ Tokenizer tokenize(const std::string &input)
                 token.value = "+";
             } break;
 
+            case '*':
+            {
+                token.type = Token_Type::multiply_sign;
+                token.value = "*";
+            } break;
+
             case ' ':
             {
                 tokenizer.col += 1;
@@ -326,7 +335,7 @@ Tokenizer tokenize(const std::string &input)
                 if (std::isdigit(c))
                 {
                     float num = 0;
-                    unsigned number_len = read_number(input.substr(index), num);
+                    unsigned number_len = read_float(input.substr(index), num);
 
                     token.type = Token_Type::number;
                     token.value = input.substr(index, number_len);
@@ -377,6 +386,9 @@ Tokenizer tokenize(const std::string &input)
 
 
 
+
+void parse_function(Tokenizer &tokenizer);
+
 unsigned array_len_lookuptable(Tokenizer &tokenizer)
 {
     tokenizer.save_state();
@@ -397,8 +409,6 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer)
 
     return array_len;
 }
-
-void parse_function(Tokenizer &tokenizer);
 
 void parse_lookuptable(Tokenizer &tokenizer)
 {
@@ -458,7 +468,6 @@ void parse_lookuptable(Tokenizer &tokenizer)
     //cout << ss.str() << endl;
     int stop = 0;
 }
-
 
 void parse_interpolation_1d(Tokenizer &tokenizer)
 {
@@ -598,6 +607,115 @@ void parse_searchalpha(Tokenizer &tokenizer)
     int stop = 0;
 }
 
+std::tuple<unsigned, unsigned, unsigned> 
+get_args_for_interpolation_2d(Tokenizer &tokenizer)
+{
+    tokenizer.save_state();
+
+    unsigned rows = 0;
+    unsigned cols = 0;
+    unsigned args_counter = 0;
+
+    do
+    {
+        tokenizer.require_token(Token_Type::comma);
+
+        tokenizer.require_token(Token_Type::number);
+
+        ++args_counter;
+
+    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+
+    rows = (unsigned)tokenizer.prev_token(2).num;
+    cols = (unsigned)tokenizer.current_token().num;
+
+    args_counter -= 2;
+
+    tokenizer.restore_state();
+
+    return std::make_tuple(args_counter, rows, cols);
+}
+
+
+void parse_interpolation_2d(Tokenizer &tokenizer)
+{
+    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
+
+    const unsigned num_params_before_array = 4;
+    for (unsigned param = 1; 
+         param <= num_params_before_array; 
+         ++param)
+    {
+        if (tokenizer.peek_token().type == Token_Type::variable)
+        {
+            cout << tokenizer.next_token().value << " ";
+        }
+        else if (tokenizer.peek_token().type == Token_Type::function)
+        {
+            tokenizer.next_token();
+            parse_function(tokenizer);
+        }
+        else
+        {
+            std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
+                " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+            throw std::exception(error.c_str());
+        }
+
+        if (param != num_params_before_array)
+        {
+            cout << tokenizer.require_token(Token_Type::comma).value << " ";
+        }
+    }
+
+    std::tuple<unsigned, unsigned, unsigned> res = get_args_for_interpolation_2d(tokenizer);
+
+    unsigned array_len, rows, cols;
+    array_len = std::get<0>(res);
+    rows = std::get<1>(res);
+    cols = std::get<2>(res);
+
+    if (array_len != (rows * cols))
+    {
+        throw std::exception("(rows * cols) does not match len of array!");
+    }
+
+    cout << ", [ [ ";
+
+    for (unsigned elem = 1;
+         elem <= array_len;
+         ++elem)
+    {
+        tokenizer.require_token(Token_Type::comma);
+
+        Token &token = tokenizer.require_token(Token_Type::number);
+
+        if (elem % cols == 0)
+        {
+            cout << token.value;
+            if (elem != array_len)
+            {
+                cout << "], [";
+            }
+        }
+        else
+        {
+            cout << token.value << ", ";
+        }
+
+    }
+
+    cout << "] ]";
+
+    tokenizer.require_token(Token_Type::comma); tokenizer.require_token(Token_Type::number);
+    tokenizer.require_token(Token_Type::comma); tokenizer.require_token(Token_Type::number);
+
+    cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
+
+    int stop = 0;
+}
+
 void parse_function(Tokenizer &tokenizer)
 {
     const Token &token = tokenizer.current_token();
@@ -617,6 +735,15 @@ void parse_function(Tokenizer &tokenizer)
     else if (token.value == "searchalpha")
     {
         parse_searchalpha(tokenizer);
+    }
+    else if (token.value == "interpolation2d")
+    {
+        parse_interpolation_2d(tokenizer);
+    }
+    else
+    {
+        std::string error = "Unrecognized function: '" + token.value + "'";
+        throw std::exception(error.c_str());
     }
 
 }
@@ -643,8 +770,8 @@ void parse(const std::string &input)
 
 int main()
 {
-    //  R "delimiter( raw_characters )delimiter"	
-    //std::string input_xml_str = R"FOO(raw string yo!)FOO";
+    // R"delimiter( raw_characters )delimiter"	
+    // std::string input_xml_str = R"FOO(raw string yo!)FOO";
 
     std::ostringstream ss;
 
@@ -654,7 +781,7 @@ int main()
 
     if (doc.LoadFile(filename) != XML_SUCCESS)
     {
-        cout << "impossible to open file: '" << filename << "'" << endl;
+        cout << "file not found: '" << filename << "'" << endl;
     }
 
     const XMLElement *root = doc.FirstChildElement();
@@ -691,7 +818,6 @@ searchindex {
         1.0, -3.0, -4.0, 5.0 },
     -0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}
 )FOO";
-
         test_input = R"FOO(
 searchalpha{ 
     searchindex {
@@ -703,32 +829,15 @@ searchalpha{
             1.0, -3.0, -4.0, 5.0 },
         -0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}, 4, 5, -6}
 )FOO";
+        test_input = "interpolation2d{var1, var2, var3, var4, 1,2,3,4,5,6,7,8,9,10,11,12, 3, 4}";
+        test_input = "interpolation2d{var1, var2, var3, var4, 99,100, 1,2}";
+
+        test_input = ss.str();
 
         cout << "INPUT: " << endl << test_input << endl << endl;
         parse(test_input);
         cout << endl << endl;
 
-#if 0
-        test_input = "lookuptable { lookuptable { lookuptable { CLW07_FLAPS, -10.0, 20.0}, -10.0, 20.0}, 30.0, -40.0}";
-        parse(test_input);
-        cout << endl << endl;
-
-        test_input = ss.str();
-        parse(test_input);
-        cout << endl << endl;
-
-        test_input = "interpolation { BF_CLC03_GOVLIM_IDX03_INDEX, BF_CLC03_GOVLIM_IDX03_ALPHA, 7.5000000000, 16.0000000000, 25.0000000000, 40.5000000000, 35.5000000000}";
-        parse(test_input);
-
-        test_input = "searchindex{BF_CLA02_NZAOA_S03,-0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}";
-        parse(test_input);
-
-        test_input = "	searchalpha{MACH_SEL,0.2000000000, 0.3000000000, 0.4000000000, 0.5000000000}";
-        parse(test_input);
-
-        test_input = "interpolation2D{	searchindex{		BF_CLA02_NZAOA_S03 ,		-0.2000000000 , 0.5000000000 , 0.7120000000 , 1.1120000000 , 1.1200000000 , 1.2120000000 , 1.5000000000 ,1.6270000000	} ,	searchalpha{		BF_CLA02_NZAOA_S03 ,		-0.2000000000 , 0.5000000000 , 0.7120000000 , 1.1120000000 , 1.1200000000 , 1.2120000000 , 1.5000000000 , 1.6270000000	} ,	searchindex{		MACH_SEL ,		0.2000000000 , 0.3000000000 , 0.4000000000 , 0.5000000000	} ,	searchalpha{		MACH_SEL ,		0.2000000000 , 0.3000000000 , 0.4000000000 , 0.5000000000	} ,	-6.1300000000 , -6.1300000000 , -6.1340000000 , -6.1340000000 , 0.8750000000 , 0.8750000000 , 0.8767000000 , 1.0000000000 , 3.0000000000 , 3.0000000000 , 3.0000000000 , 1.0000000000 , 7.0000000000 , 7.0000000000 , 8.8800000000 , 1.0000000000 , 7.0800000000 , 7.1600000000 , 9.0000000000 , 1.0000000000 , 8.0000000000 , 9.0000000000 , 9.0000000000 , 1.0000000000 , 14.2450000000 , 15.0000000000 , 9.0000000000 , 1.0000000000 , 17.0000000000 , 15.0000000000 , 9.0000000000 , 1.0000000000 ,	8.0 ,	4.0}";
-        parse(test_input);
-#endif // 0
 
     }
     catch (const std::exception &e)
