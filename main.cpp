@@ -118,6 +118,18 @@ struct Token
 
     unsigned line = 1;
     unsigned col = 1;
+
+    bool operator==(Token_Type expected)
+    {
+        bool res = (expected == type);
+        return res;
+    }
+
+    bool operator!=(Token_Type expected)
+    {
+        bool res = (expected != type);
+        return res;
+    }
 };
 
 struct Tokenizer
@@ -202,7 +214,7 @@ struct Tokenizer
     {
         Token &token = next_token();
 
-        if (token.type != type)
+        if (token != type)
         {
             std::string error = "Expected " + token_type_to_str(type) + " " +
                 "found " + token_type_to_str(token.type) + "  " +
@@ -239,7 +251,7 @@ std::string read_str(const std::string &input)
     for (char c : input)
     {
         if (isalnum(c) ||
-            c == '_'   ||
+            c == '_' ||
             c == '.')
         {
             ret << c;
@@ -359,7 +371,7 @@ Tokenizer tokenize(const std::string &input)
 
             default:
             {
-                if (std::isdigit(c)) 
+                if (std::isdigit(c))
                 {
                     float num = 0;
                     unsigned number_len = read_float(input.substr(index), num);
@@ -424,9 +436,9 @@ void parse_simple_function(Tokenizer& tokenizer)
 
     Token &current_token = tokenizer.next_token();
 
-    while (current_token.type != Token_Type::close_curly_bracket)
+    while (current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token.type == Token_Type::function)
+        if (current_token == Token_Type::function)
         {
             parse_function(tokenizer);
         }
@@ -437,7 +449,7 @@ void parse_simple_function(Tokenizer& tokenizer)
 
         current_token = tokenizer.next_token();
     }
-    
+
     cout << current_token.value << " "; // }
 
     int stop = 0;
@@ -457,7 +469,7 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer)
 
         ++array_len;
 
-    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
 
     tokenizer.restore_state();
 
@@ -469,11 +481,11 @@ void parse_lookuptable(Tokenizer &tokenizer)
     cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
-    if (tokenizer.peek_token().type == Token_Type::variable)
+    if (tokenizer.peek_token() == Token_Type::variable)
     {
         cout << tokenizer.next_token().value << " ";
     }
-    else if (tokenizer.peek_token().type == Token_Type::function)
+    else if (tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         parse_function(tokenizer);
@@ -514,7 +526,7 @@ void parse_lookuptable(Tokenizer &tokenizer)
 
         ++args_counter;
 
-    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
     cout << "]";
 
     cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
@@ -528,11 +540,11 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
     cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
-    if (tokenizer.peek_token().type == Token_Type::variable)
+    if (tokenizer.peek_token() == Token_Type::variable)
     {
         cout << tokenizer.next_token().value << " ";
     }
-    else if (tokenizer.peek_token().type == Token_Type::function)
+    else if (tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         parse_function(tokenizer);
@@ -546,11 +558,11 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
 
     cout << tokenizer.require_token(Token_Type::comma).value << " ";
 
-    if (tokenizer.peek_token().type == Token_Type::variable)
+    if (tokenizer.peek_token() == Token_Type::variable)
     {
         cout << tokenizer.next_token().value << " ";
     }
-    else if (tokenizer.peek_token().type == Token_Type::function)
+    else if (tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         parse_function(tokenizer);
@@ -573,7 +585,7 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
 
         cout << std::fixed << token.num << ", ";
 
-    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
     cout << "]";
 
     cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
@@ -586,11 +598,11 @@ void parse_searchindex(Tokenizer &tokenizer)
     cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
-    if (tokenizer.peek_token().type == Token_Type::variable)
+    if (tokenizer.peek_token() == Token_Type::variable)
     {
         cout << tokenizer.next_token().value << " ";
     }
-    else if (tokenizer.peek_token().type == Token_Type::function)
+    else if (tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         parse_function(tokenizer);
@@ -613,7 +625,7 @@ void parse_searchindex(Tokenizer &tokenizer)
 
         cout << std::fixed << token.num << ", ";
 
-    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
     cout << "]";
 
     cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
@@ -626,11 +638,11 @@ void parse_searchalpha(Tokenizer &tokenizer)
     cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
-    if (tokenizer.peek_token().type == Token_Type::variable)
+    if (tokenizer.peek_token() == Token_Type::variable)
     {
         cout << tokenizer.next_token().value << " ";
     }
-    else if (tokenizer.peek_token().type == Token_Type::function)
+    else if (tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         parse_function(tokenizer);
@@ -653,7 +665,7 @@ void parse_searchalpha(Tokenizer &tokenizer)
 
         cout << std::fixed << token.num << ", ";
 
-    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
     cout << "]";
 
     cout << tokenizer.require_token(Token_Type::close_curly_bracket).value;
@@ -661,7 +673,7 @@ void parse_searchalpha(Tokenizer &tokenizer)
     int stop = 0;
 }
 
-std::tuple<unsigned, unsigned, unsigned> 
+std::tuple<unsigned, unsigned, unsigned>
 get_args_for_interpolation_2d(Tokenizer &tokenizer)
 {
     tokenizer.save_state();
@@ -678,7 +690,7 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer)
 
         ++args_counter;
 
-    } while (tokenizer.peek_token().type != Token_Type::close_curly_bracket);
+    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
 
     rows = (unsigned)tokenizer.prev_token(2).num;
     cols = (unsigned)tokenizer.current_token().num;
@@ -696,15 +708,15 @@ void parse_interpolation_2d(Tokenizer &tokenizer)
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     const unsigned num_params_before_array = 4;
-    for (unsigned param = 1; 
-         param <= num_params_before_array; 
+    for (unsigned param = 1;
+         param <= num_params_before_array;
          ++param)
     {
-        if (tokenizer.peek_token().type == Token_Type::variable)
+        if (tokenizer.peek_token() == Token_Type::variable)
         {
             cout << tokenizer.next_token().value << " ";
         }
-        else if (tokenizer.peek_token().type == Token_Type::function)
+        else if (tokenizer.peek_token() == Token_Type::function)
         {
             tokenizer.next_token();
             parse_function(tokenizer);
@@ -789,19 +801,19 @@ void parse(const std::string &input)
 
     std::ostringstream ss;
 
-    do
-    {
-        const Token &token = tokenizer.current_token();
+    Token &current_token = tokenizer.current_token();
 
-        if (token.type == Token_Type::function)
+    while (current_token != Token_Type::end_of_tokens)
+    {
+        if (current_token == Token_Type::function)
         {
             parse_function(tokenizer);
         }
 
-    } while (tokenizer.next_token().type != Token_Type::end_of_tokens);
+        current_token = tokenizer.current_token();
+    }
 
 }
-
 
 int main()
 {
@@ -883,12 +895,12 @@ DIVISION { 2.0 * UPDATABLE_CONSTANTS.LOCAL_UPDATABLE_PITCH_CMD_T_LL1 + 0.01 ,
 )FOO";
 
         test_input = "sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}";
-        
-        
-        test_input = "interpolation{ sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}, sin{123.001}, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+
+
+        test_input = "interpolation{ sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}, interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, 1.0, 2.0, -3.0, -4.0, 5.0 }";
 
         cout << "INPUT: " << endl << test_input << endl << endl;
-        
+
         cout << "OUTPUT:" << endl;
         parse(test_input);
 
