@@ -810,7 +810,7 @@ void parse(const std::string &input)
             parse_function(tokenizer);
         }
 
-        current_token = tokenizer.current_token();
+        current_token = tokenizer.next_token();
     }
 
 }
