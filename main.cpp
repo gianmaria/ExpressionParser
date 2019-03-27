@@ -81,7 +81,7 @@ enum class Token_Type
 {
     function, variable, number, comma,
     plus_sign, minus_sign, multiply_sign,
-    open_round_bracket, close_round_bracket,
+    open_parenthesis, close_parenthesis,
     open_square_bracket, close_square_bracket,
     open_curly_bracket, close_curly_bracket,
     end_of_tokens, unknown
@@ -97,8 +97,8 @@ std::string token_type_to_str(const Token_Type &type)
         case Token_Type::comma: return "comma";
         case Token_Type::plus_sign: return "plus_sign";
         case Token_Type::minus_sign: return "minus_sign";
-        case Token_Type::open_round_bracket: return "open_round_bracket";
-        case Token_Type::close_round_bracket: return "close_round_bracket";
+        case Token_Type::open_parenthesis: return "open_parenthesis";
+        case Token_Type::close_parenthesis: return "close_parenthesis";
         case Token_Type::open_square_bracket: return "open_square_bracket";
         case Token_Type::close_square_bracket: return "close_square_bracket";
         case Token_Type::open_curly_bracket: return "open_curly_bracket";
@@ -217,19 +217,19 @@ struct Tokenizer
 
 unsigned read_float(const std::string &input, float &num)
 {
-    unsigned pos_end_of_num = 0;
+    unsigned number_len = 0;
 
-    while (std::isdigit(input[pos_end_of_num]) ||
-           input[pos_end_of_num] == '.')
+    while (std::isdigit(input[number_len]) ||
+           input[number_len] == '.')
     {
-        ++pos_end_of_num;
+        ++number_len;
     }
 
-    std::string num_to_parse = input.substr(0, pos_end_of_num);
+    std::string num_to_parse = input.substr(0, number_len);
 
     num = std::stof(num_to_parse);
 
-    return pos_end_of_num;
+    return number_len;
 }
 
 std::string read_str(const std::string &input)
@@ -239,7 +239,8 @@ std::string read_str(const std::string &input)
     for (char c : input)
     {
         if (isalnum(c) ||
-            c == '_')
+            c == '_'   ||
+            c == '.')
         {
             ret << c;
         }
@@ -258,18 +259,19 @@ void parse_interpolation_1d(Tokenizer&);
 void parse_searchindex(Tokenizer&);
 void parse_searchalpha(Tokenizer&);
 void parse_interpolation_2d(Tokenizer&);
-void parse_simple_function(Tokenizer&, unsigned args_count = 1);
+void parse_simple_function(Tokenizer&);
 
 
 std::map<std::string, std::function<void(Tokenizer&)>> functions_map =
 {
-    {"interpolation", parse_interpolation_1d},
-    {"lookuptable", parse_lookuptable},
-    {"searchindex", parse_searchindex},
-    {"searchalpha", parse_searchalpha},
+    {"interpolation",   parse_interpolation_1d},
+    {"lookuptable",     parse_lookuptable},
+    {"searchindex",     parse_searchindex},
+    {"searchalpha",     parse_searchalpha},
     {"interpolation2d", parse_interpolation_2d},
-    {"sin", [](Tokenizer& t) { parse_simple_function(t, 1); }},
-    {"division", [](Tokenizer& t) { parse_simple_function(t, 1); }},
+
+    {"sin",             parse_simple_function},
+    {"DIVISION",        parse_simple_function},
 };
 
 
@@ -390,7 +392,8 @@ Tokenizer tokenize(const std::string &input)
                 }
                 else
                 {
-                    std::string error = "Invalid char: '"; error.push_back(c); error += "'";
+                    std::string error = "Invalid char: '"; error.push_back(c); error += "'"
+                        " Line:" + std::to_string(token.line) + " Col:" + std::to_string(token.col);
                     throw std::exception(error.c_str());
                 }
             }
@@ -414,28 +417,28 @@ Tokenizer tokenize(const std::string &input)
 
 void parse_function(Tokenizer &tokenizer);
 
-void parse_simple_function(Tokenizer& tokenizer, unsigned args_count)
+void parse_simple_function(Tokenizer& tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
-    Token &token = tokenizer.next_token();
+    Token &current_token = tokenizer.next_token();
 
-    while (token.type != Token_Type::close_curly_bracket)
+    while (current_token.type != Token_Type::close_curly_bracket)
     {
-        if (token.type == Token_Type::function)
+        if (current_token.type == Token_Type::function)
         {
             parse_function(tokenizer);
         }
         else
         {
-            cout << token.value << " ";
-
-            token = tokenizer.next_token();
+            cout << current_token.value << " ";
         }
+
+        current_token = tokenizer.next_token();
     }
     
-    cout << token.value << " ";
+    cout << current_token.value << " "; // }
 
     int stop = 0;
 }
@@ -463,7 +466,7 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer)
 
 void parse_lookuptable(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     if (tokenizer.peek_token().type == Token_Type::variable)
@@ -522,7 +525,7 @@ void parse_lookuptable(Tokenizer &tokenizer)
 
 void parse_interpolation_1d(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     if (tokenizer.peek_token().type == Token_Type::variable)
@@ -580,7 +583,7 @@ void parse_interpolation_1d(Tokenizer &tokenizer)
 
 void parse_searchindex(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     if (tokenizer.peek_token().type == Token_Type::variable)
@@ -620,7 +623,7 @@ void parse_searchindex(Tokenizer &tokenizer)
 
 void parse_searchalpha(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     if (tokenizer.peek_token().type == Token_Type::variable)
@@ -689,7 +692,7 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer)
 
 void parse_interpolation_2d(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.current_token().value << " "; // name of the function
     cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
 
     const unsigned num_params_before_array = 4;
@@ -871,24 +874,33 @@ searchalpha{
 #endif // 0
 
         test_input = "interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }";
-        test_input = "sin{ 2 * 456.21 - sin {98.2}}";
+
+        test_input = R"FOO(
+DIVISION { 2.0 * UPDATABLE_CONSTANTS.LOCAL_UPDATABLE_PITCH_CMD_T_LL1 + 0.01 , 
+           2.0 * DIVISION { 
+               1.0 ,UPDATABLE_CONSTANTS.LOCAL_UPDATABLE_PITCH_CMD_W_LL1 } + 0.01 
+         }
+)FOO";
+
+        test_input = "sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}";
+        
+        
+        test_input = "interpolation{ sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}, sin{123.001}, 1.0, 2.0, -3.0, -4.0, 5.0 }";
 
         cout << "INPUT: " << endl << test_input << endl << endl;
         
         cout << "OUTPUT:" << endl;
         parse(test_input);
 
-        cout << endl << endl;
+        cout << endl;
 
-
+        std::getc(stdin);
     }
     catch (const std::exception &e)
     {
         std::cout << endl << endl << "[EXCEPTION] " << e.what() << endl;
         int stop = 0;
     }
-
-    std::getc(stdin);
 
     return 0;
 }
