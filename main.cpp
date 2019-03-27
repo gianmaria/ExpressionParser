@@ -1,5 +1,4 @@
 #if 0
-// bresaola
 interpolation{
     BF_CLC03_GOVLIM_IDX03_INDEX ,
     BF_CLC03_GOVLIM_IDX03_ALPHA ,
@@ -54,6 +53,8 @@ searchalpha{
 #include <algorithm> // count_if
 #include <sstream> // ostringstream
 #include <tuple>
+#include <map>
+#include <functional> // function
 
 #include <cstdio> // getc
 #include <cctype> // isalpha
@@ -251,15 +252,39 @@ std::string read_str(const std::string &input)
     return ret.str();
 }
 
-std::list<std::string> function_list = { "lookuptable", "interpolation", "searchindex", "searchalpha", "interpolation2d" };
+
+void parse_lookuptable(Tokenizer&);
+void parse_interpolation_1d(Tokenizer&);
+void parse_searchindex(Tokenizer&);
+void parse_searchalpha(Tokenizer&);
+void parse_interpolation_2d(Tokenizer&);
+void parse_simple_function(Tokenizer&, unsigned args_count = 1);
+
+
+std::map<std::string, std::function<void(Tokenizer&)>> functions_map =
+{
+    {"interpolation", parse_interpolation_1d},
+    {"lookuptable", parse_lookuptable},
+    {"searchindex", parse_searchindex},
+    {"searchalpha", parse_searchalpha},
+    {"interpolation2d", parse_interpolation_2d},
+    {"sin", [](Tokenizer& t) { parse_simple_function(t, 1); }},
+    {"division", [](Tokenizer& t) { parse_simple_function(t, 1); }},
+};
+
 
 bool is_function(const std::string &fn)
 {
-    auto res = std::find(function_list.begin(), function_list.end(), fn);
+    bool res = false;
 
-    return (res != std::end(function_list));
+    auto it = functions_map.find(fn);
 
-    return true;
+    if (it != functions_map.end())
+    {
+        res = true;
+    }
+
+    return res;
 }
 
 
@@ -332,7 +357,7 @@ Tokenizer tokenize(const std::string &input)
 
             default:
             {
-                if (std::isdigit(c))
+                if (std::isdigit(c)) 
                 {
                     float num = 0;
                     unsigned number_len = read_float(input.substr(index), num);
@@ -388,6 +413,32 @@ Tokenizer tokenize(const std::string &input)
 
 
 void parse_function(Tokenizer &tokenizer);
+
+void parse_simple_function(Tokenizer& tokenizer, unsigned args_count)
+{
+    cout << tokenizer.current_token().value << " "; // the name of the function
+    cout << tokenizer.require_token(Token_Type::open_curly_bracket).value << " ";
+
+    Token &token = tokenizer.next_token();
+
+    while (token.type != Token_Type::close_curly_bracket)
+    {
+        if (token.type == Token_Type::function)
+        {
+            parse_function(tokenizer);
+        }
+        else
+        {
+            cout << token.value << " ";
+
+            token = tokenizer.next_token();
+        }
+    }
+    
+    cout << token.value << " ";
+
+    int stop = 0;
+}
 
 unsigned array_len_lookuptable(Tokenizer &tokenizer)
 {
@@ -636,7 +687,6 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer)
     return std::make_tuple(args_counter, rows, cols);
 }
 
-
 void parse_interpolation_2d(Tokenizer &tokenizer)
 {
     cout << tokenizer.current_token().value << " "; // the name of the function
@@ -720,32 +770,14 @@ void parse_function(Tokenizer &tokenizer)
 {
     const Token &token = tokenizer.current_token();
 
-    if (token.value == "lookuptable")
-    {
-        parse_lookuptable(tokenizer);
-    }
-    else if (token.value == "interpolation")
-    {
-        parse_interpolation_1d(tokenizer);
-    }
-    else if (token.value == "searchindex")
-    {
-        parse_searchindex(tokenizer);
-    }
-    else if (token.value == "searchalpha")
-    {
-        parse_searchalpha(tokenizer);
-    }
-    else if (token.value == "interpolation2d")
-    {
-        parse_interpolation_2d(tokenizer);
-    }
-    else
-    {
-        std::string error = "Unrecognized function: '" + token.value + "'";
-        throw std::exception(error.c_str());
-    }
+    const std::string &function_name = token.value;
 
+    auto it = functions_map.find(function_name);
+    if (it != functions_map.end())
+    {
+        auto func = it->second;
+        func(tokenizer);
+    }
 }
 
 void parse(const std::string &input)
@@ -800,7 +832,9 @@ int main()
     {
         std::string test_input;
 
+#if 0
         test_input = "interpolation{ var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+
         test_input = "interpolation{ interpolation{ var1, var2, 1.0, -45.9}, var3, 1.0, 2.0, -3.0, -4.0, 5.0 }";
         test_input = "interpolation{ var3, interpolation{ var1, var2, 1.0, -45.9}, 1.0, 2.0, -3.0, -4.0, 5.0 }";
         test_input = "interpolation{ interpolation{ var1, var2, 3.14, -45.9}, interpolation{ var3, var4, 7.0, -88.9}, 1.0, -3.0, -4.0, 5.0 }";
@@ -834,8 +868,16 @@ searchalpha{
 
         test_input = ss.str();
 
+#endif // 0
+
+        test_input = "interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+        test_input = "sin{ 2 * 456.21 - sin {98.2}}";
+
         cout << "INPUT: " << endl << test_input << endl << endl;
+        
+        cout << "OUTPUT:" << endl;
         parse(test_input);
+
         cout << endl << endl;
 
 
