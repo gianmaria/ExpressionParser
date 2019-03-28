@@ -22,6 +22,7 @@ using std::endl;
 #include "tinyxml2.h"
 using namespace tinyxml2;
 
+// common.h
 enum class BlockType : unsigned int
 {
     txt,
@@ -30,6 +31,8 @@ enum class BlockType : unsigned int
     mem,
     upd
 };
+
+using rhs = std::pair<BlockType, std::string>;
 
 std::string block_type_to_str(BlockType type)
 {
@@ -44,6 +47,10 @@ std::string block_type_to_str(BlockType type)
     }
 }
 
+// common.h
+
+
+// parser.h
 enum class Token_Type
 {
     function, variable, number, comma,
@@ -77,7 +84,6 @@ std::string token_type_to_str(const Token_Type &type)
     }
 }
 
-using rhs = std::pair<BlockType, std::string>;
 
 struct Token
 {
@@ -239,8 +245,10 @@ std::string read_str(const std::string &input)
 
     return ret.str();
 }
+// parser.h
 
 
+// enhancer.h
 void augment_lookuptable(Tokenizer&, std::list<rhs> &);
 void augment_interpolation_1d(Tokenizer&, std::list<rhs> &);
 void augment_searchindex(Tokenizer&, std::list<rhs> &);
@@ -546,12 +554,12 @@ void augment_searchindex(Tokenizer &tokenizer, std::list<rhs> &res)
 
 void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
 {
-    cout << tokenizer.current_token()->value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
+    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
     if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token()->value << " ";
+        res.push_back(tokenizer.next_token()->to_rhs());
     }
     else if (*tokenizer.peek_token() == Token_Type::function)
     {
@@ -565,10 +573,9 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
         throw std::exception(error.c_str());
     }
 
-    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
+    res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
 
-    cout << " [";
-
+    res.push_back(std::make_pair(BlockType::txt, "["));
 
     Token *current_token = tokenizer.next_token();
 
@@ -580,15 +587,15 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
         }
         else
         {
-            cout << current_token->value << " ";
+            res.push_back(current_token->to_rhs());
         }
 
         current_token = tokenizer.next_token();
     }
 
-    cout << "]";
+    res.push_back(std::make_pair(BlockType::txt, "]"));
 
-    cout << current_token->value; // }
+    res.push_back(current_token->to_rhs()); // }
 }
 
 
@@ -849,6 +856,7 @@ void augment_function(Tokenizer &tokenizer, std::list<rhs> &res)
         func(tokenizer, res);
     }
 }
+// enhancer.h
 
 #if 0
 void parse(const std::string &input)
@@ -884,6 +892,7 @@ void test_input(const std::string &input)
 #endif
 
 
+// parser.h
 
 Token tokenize(const rhs &elem)
 {
@@ -909,6 +918,14 @@ Token tokenize(const rhs &elem)
     else if (input == "*")
     {
         token.type = Token_Type::multiply_sign;
+    }
+    else if (input == "(")
+    {
+        token.type = Token_Type::open_parenthesis;
+    }
+    else if (input == ")")
+    {
+        token.type = Token_Type::close_parenthesis;
     }
     else if (input == "{")
     {
@@ -965,7 +982,9 @@ Tokenizer parse(const std::list<rhs> &input)
 
     return tokenizer;
 }
+// parser.h
 
+// enhancer.h
 std::list<rhs>
 augment(const std::list<rhs> &input)
 {
@@ -983,8 +1002,8 @@ augment(const std::list<rhs> &input)
         }
         else
         {
-            auto pair = std::make_pair(current_token->block_type, current_token->value);
-            res.push_back(pair);
+            rhs rhs = std::make_pair(current_token->block_type, current_token->value);
+            res.push_back(rhs);
         }
 
         current_token = tokenizer.next_token();
@@ -992,6 +1011,9 @@ augment(const std::list<rhs> &input)
 
     return res;
 }
+// enhancer.h
+
+
 
 BlockType str_to_block_type(const std::string &block_type)
 {
@@ -1012,11 +1034,13 @@ std::ostream &operator<<(std::ostream &os, const std::list<rhs> &list)
     for (const rhs &elem : list)
     {
         //cout << elem.second << " Type: " << block_type_to_str(elem.first) << endl;
-        cout << elem.second << endl;
+        cout << elem.second << " ";
     }
+    cout << endl;
 
     return os;
 }
+
 std::list<rhs> get_input_from_xml_file(const char *filename)
 {
     std::list<rhs> input;
@@ -1026,7 +1050,7 @@ std::list<rhs> get_input_from_xml_file(const char *filename)
     if (doc.LoadFile(filename) != XML_SUCCESS)
     {
         cout << "can't load file: '" << filename << "'" << endl;
-        return -1;
+        return input;
     }
 
 

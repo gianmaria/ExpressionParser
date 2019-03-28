@@ -220,6 +220,7 @@
   <block type="txt">}</block>
 </rhs>-->
 
+<!--
 <rhs>
   <block type="txt">searchindex</block>
   <block type="txt">{</block>
@@ -246,5 +247,150 @@
   <block type="txt">300.0000000000</block>
   <block type="txt">,</block>
   <block type="txt">305.0000000000</block>
+  <block type="txt">}</block>
+</rhs>
+-->
+
+<!--<rhs>
+  <block type="txt">searchalpha</block>
+  <block type="txt">{</block>
+  <block type="tp">COMPUTED_AIRSPEED_SEL</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">150.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">200.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">220.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">240.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">250.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">260.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">280.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">295.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">300.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">305.0000000000</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+<!--<rhs>
+  <block type="txt">searchalpha</block>
+  <block type="txt">{</block>
+  <block type="txt">searchindex</block>
+  <block type="txt">{</block>
+  <block type="tp">COMPUTED_AIRSPEED_SEL</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">150.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">200.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">220.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">240.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">250.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">260.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">280.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">295.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">300.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">305.0000000000</block>
+  <block type="txt">}</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">150.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">200.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">220.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">240.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">250.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">260.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">280.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">295.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">300.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">305.0000000000</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+<!--<rhs>
+  <block type="txt">(</block>
+  <block type="txt">(</block>
+  <block type="tp">TP_CLS08_NAC90_OUT</block>
+  <block type="txt">*</block>
+  <block type="tmp">BF_CLS08_PFILT_FSW01_SATURATION_LIMITER</block>
+  <block type="txt">+</block>
+  <block type="txt">(</block>
+  <block type="txt">1.0</block>
+  <block type="txt">-</block>
+  <block type="tmp">BF_CLS08_PFILT_FSW01_SATURATION_LIMITER</block>
+  <block type="txt">)</block>
+  <block type="txt">*</block>
+  <block type="tp">TP_CLS08_NAC30TO60_OUT</block>
+  <block type="txt">)</block>
+  <block type="txt">*</block>
+  <block type="tmp">BF_CLS08_PFILT_FSW03_SATURATION_LIMITER</block>
+  <block type="txt">+</block>
+  <block type="txt">(</block>
+  <block type="txt">1.0</block>
+  <block type="txt">-</block>
+  <block type="tmp">BF_CLS08_PFILT_FSW03_SATURATION_LIMITER</block>
+  <block type="txt">)</block>
+  <block type="txt">*</block>
+  <block type="tp">TP_CLS08_NAC5_OUT</block>
+  <block type="txt">)</block>
+  <block type="txt">*</block>
+  <block type="tmp">BF_CLS08_PFILT_PFILT01_SATURATION_LIMITER</block>
+  <block type="txt">+</block>
+  <block type="txt">(</block>
+  <block type="txt">1.0</block>
+  <block type="txt">-</block>
+  <block type="tmp">BF_CLS08_PFILT_PFILT01_SATURATION_LIMITER</block>
+  <block type="txt">)</block>
+  <block type="txt">*</block>
+  <block type="txt">(</block>
+  <block type="tp">TP_CLS08_NAC0_OUT</block>
+  <block type="txt">*</block>
+  <block type="tmp">BF_FSW02_SATURATION_LIMITER</block>
+  <block type="txt">+</block>
+  <block type="txt">(</block>
+  <block type="txt">1.0</block>
+  <block type="txt">-</block>
+  <block type="tmp">BF_FSW02_SATURATION_LIMITER</block>
+  <block type="txt">)</block>
+  <block type="txt">*</block>
+  <block type="tp">TP_CLS08_NAC0_FTIP_OUT</block>
+  <block type="txt">)</block>
+</rhs>-->
+
+<rhs>
+  <block type="txt">switch</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLS08_PFILT_FIL01_SAT2_LIMITER</block>
+  <block type="txt">,</block>
+  <block type="tp">CLAW_INIT</block>
+  <block type="txt">,</block>
+  <block type="mem">CLS08_PFILT_FIL01_M8</block>
   <block type="txt">}</block>
 </rhs>
