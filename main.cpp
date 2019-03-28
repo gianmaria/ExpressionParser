@@ -158,67 +158,67 @@ struct Tokenizer
         old_token_idx = 0;
     }
 
-    Token& current_token()
+    Token* current_token()
     {
+        Token *token = nullptr;
+
         if (current_token_idx < tokens.size())
         {
-            Token &token = tokens[current_token_idx];
-            return token;
+            token = &tokens[current_token_idx];
         }
         else
         {
-            Token &token = tokens.back(); // last token is always end_of_tokens
-            return token;
+            token = &tokens.back(); // last token is always end_of_tokens
         }
+        return token;
     }
 
-    Token& next_token()
+    Token* next_token()
     {
         ++current_token_idx;
 
-        Token &token = current_token();
+        Token *token = current_token();
 
         return token;
     }
 
-    Token& peek_token()
+    Token* peek_token()
     {
         ++current_token_idx;
 
-        Token &token = current_token();
+        Token *token = current_token();
 
         --current_token_idx;
 
         return token;
     }
 
-    Token& prev_token(unsigned back = 1)
+    Token* prev_token(unsigned back = 1)
     {
+        Token *token = nullptr;
+
         unsigned desired_token_idx = current_token_idx - back;
 
         if (desired_token_idx < current_token_idx) // check for underflow
         {
-            Token &token = tokens[desired_token_idx];
-
-            return token;
+            token = &tokens[desired_token_idx];
         }
         else
         {
-            Token &token = tokens.front();
-
-            return token;
+            token = &tokens.front();
         }
+        return token;
     }
 
-    Token& require_next_token(const Token_Type &type)
+    Token* require_next_token(const Token_Type &type)
     {
-        Token &token = next_token();
+        Token *token = next_token();
 
-        if (token != type)
+        if (*token != type)
         {
             std::string error = "Expected " + token_type_to_str(type) + " " +
-                "found " + token_type_to_str(token.type) + "  " +
-                "Line:" + std::to_string(token.line) + " Col:" + std::to_string(token.col);
+                "found " + token_type_to_str(token->type) + "  " +
+                "Line:" + std::to_string(token->line) + " Col:" + std::to_string(token->col);
             throw std::exception(error.c_str());
         }
 
@@ -383,7 +383,7 @@ Tokenizer tokenize(const std::string &input)
                     tokenizer.col += (unsigned)token.value.length();
                     index += (unsigned)token.value.length();
 
-                    Token &last_token = tokenizer.tokens.back();
+                    Token last_token = tokenizer.tokens.back();
                     if (last_token.type == Token_Type::minus_sign)
                     {
                         token.value = "-" + token.value; // @TODO: lasciare il numero senza il segno
@@ -431,26 +431,26 @@ void augment_function(Tokenizer &tokenizer);
 
 void augment_simple_function(Tokenizer& tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket).value << " ";
+    cout << tokenizer.current_token()->value << " "; // name of the function
+    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
 
-    Token &current_token = tokenizer.next_token();
+    Token *current_token = tokenizer.next_token();
 
-    while (current_token != Token_Type::close_curly_bracket)
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
         }
         else
         {
-            cout << current_token.value << " ";
+            cout << current_token->value << " ";
         }
 
         current_token = tokenizer.next_token();
     }
 
-    cout << current_token.value << " "; // }
+    cout << current_token->value << " "; // }
 
     int stop = 0;
 }
@@ -458,58 +458,58 @@ void augment_simple_function(Tokenizer& tokenizer)
 
 void augment_interpolation_1d(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket).value << " ";
+    cout << tokenizer.current_token()->value << " "; // name of the function
+    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
 
-    if (tokenizer.peek_token() == Token_Type::variable)
+    if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token().value << " ";
+        cout << tokenizer.next_token()->value << " ";
     }
-    else if (tokenizer.peek_token() == Token_Type::function)
+    else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         augment_function(tokenizer);
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
-            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+            " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
         throw std::exception(error.c_str());
     }
 
-    cout << tokenizer.require_next_token(Token_Type::comma).value << " ";
+    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
 
-    if (tokenizer.peek_token() == Token_Type::variable)
+    if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token().value << " ";
+        cout << tokenizer.next_token()->value << " ";
     }
-    else if (tokenizer.peek_token() == Token_Type::function)
+    else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         augment_function(tokenizer);
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
-            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+            " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
         throw std::exception(error.c_str());
     }
 
-    cout << tokenizer.require_next_token(Token_Type::comma).value << " ";
+    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
 
     cout << " [";
 
-    Token &current_token = tokenizer.next_token();
+    Token *current_token = tokenizer.next_token();
 
-    while (current_token != Token_Type::close_curly_bracket)
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
         }
         else
         {
-            cout << current_token.value << " ";
+            cout << current_token->value << " ";
         }
 
         current_token = tokenizer.next_token();
@@ -517,45 +517,45 @@ void augment_interpolation_1d(Tokenizer &tokenizer)
 
     cout << "]";
 
-    cout << current_token.value; // }
+    cout << current_token->value; // }
 }
 
 void augment_searchindex(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket).value << " ";
+    cout << tokenizer.current_token()->value << " "; // name of the function
+    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
 
-    if (tokenizer.peek_token() == Token_Type::variable)
+    if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token().value << " ";
+        cout << tokenizer.next_token()->value << " ";
     }
-    else if (tokenizer.peek_token() == Token_Type::function)
+    else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         augment_function(tokenizer);
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
-            "  (Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col) + ")";
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+            "  (Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col) + ")";
         throw std::exception(error.c_str());
     }
 
-    cout << tokenizer.require_next_token(Token_Type::comma).value << " ";
+    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
 
     cout << " [";
 
-    Token &current_token = tokenizer.next_token();
+    Token *current_token = tokenizer.next_token();
 
-    while (current_token != Token_Type::close_curly_bracket)
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
         }
         else
         {
-            cout << current_token.value << " ";
+            cout << current_token->value << " ";
         }
 
         current_token = tokenizer.next_token();
@@ -563,46 +563,46 @@ void augment_searchindex(Tokenizer &tokenizer)
 
     cout << "]";
 
-    cout << current_token.value; // }
+    cout << current_token->value; // }
 }
 
 void augment_searchalpha(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket).value << " ";
+    cout << tokenizer.current_token()->value << " "; // name of the function
+    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
 
-    if (tokenizer.peek_token() == Token_Type::variable)
+    if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token().value << " ";
+        cout << tokenizer.next_token()->value << " ";
     }
-    else if (tokenizer.peek_token() == Token_Type::function)
+    else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         augment_function(tokenizer);
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
-            "  (Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col) + ")";
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+            "  (Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col) + ")";
         throw std::exception(error.c_str());
     }
 
-    cout << tokenizer.require_next_token(Token_Type::comma).value << " ";
+    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
 
     cout << " [";
 
 
-    Token &current_token = tokenizer.next_token();
+    Token *current_token = tokenizer.next_token();
 
-    while (current_token != Token_Type::close_curly_bracket)
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
         }
         else
         {
-            cout << current_token.value << " ";
+            cout << current_token->value << " ";
         }
 
         current_token = tokenizer.next_token();
@@ -610,7 +610,7 @@ void augment_searchalpha(Tokenizer &tokenizer)
 
     cout << "]";
 
-    cout << current_token.value; // }
+    cout << current_token->value; // }
 }
 
 
@@ -620,45 +620,32 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer)
 
     unsigned array_len = 0;
 
-    const Token &current_token = tokenizer.next_token();
+    const Token *current_token = tokenizer.next_token();
 
-    while (current_token != Token_Type::close_curly_bracket)
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
             ++array_len;
         }
-        else if (current_token == Token_Type::number)
+        else if (*current_token == Token_Type::number)
         {
             ++array_len;
         }
-        else if (current_token == Token_Type::comma)
+        else if (*current_token == Token_Type::comma)
         {
             // nothing to do here
         }
         else
         {
             // error?
-            std::string error = "Something unexpected happen, found token: " + token_type_to_str(current_token.type);
+            std::string error = "Something unexpected happen, found token: " + token_type_to_str(current_token->type);
             throw std::exception(error.c_str());
         }
 
         current_token = tokenizer.next_token(); // @TODO: chiedere a matteo perchè in current_token viene copiato next_token
     }
-
-#if 0
-    do
-    {
-        tokenizer.require_next_token(Token_Type::comma);
-
-        tokenizer.require_next_token(Token_Type::number);
-
-        ++array_len;
-
-    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
-#endif // 0
-
 
     tokenizer.restore_state();
 
@@ -667,25 +654,25 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer)
 
 void augment_lookuptable(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket).value << " ";
+    cout << tokenizer.current_token()->value << " "; // name of the function
+    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
 
-    if (tokenizer.peek_token() == Token_Type::variable)
+    if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token().value << " ";
+        cout << tokenizer.next_token()->value << " ";
     }
-    else if (tokenizer.peek_token() == Token_Type::function)
+    else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
         augment_function(tokenizer);
     }
     else
     {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
-            " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+            " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
         throw std::exception(error.c_str());
     }
-    cout << tokenizer.require_next_token(Token_Type::comma).value << " ";
+    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
 
     unsigned array_len = array_len_lookuptable(tokenizer);
 
@@ -699,62 +686,39 @@ void augment_lookuptable(Tokenizer &tokenizer)
 
     cout << " [";
     
-    Token &current_token = tokenizer.next_token();
+    Token *current_token = tokenizer.next_token();
 
-    while (current_token != Token_Type::close_curly_bracket)
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
         }
-        else if (current_token != Token_Type::comma ||
-                 current_token != Token_Type::variable)
+        else if (*current_token == Token_Type::number)
         {
             if (args_counter == half_array_len)
             {
-                cout << current_token.value << "], [";
+                cout << current_token->value << "], [";
+                tokenizer.next_token(); // skip the ','
             }
             else
             {
-                cout << current_token.value << " ";
+                cout << current_token->value << " ";
             }
-
             ++args_counter;
         }
         else
         {
-
+            cout << current_token->value << " ";
         }
         
         current_token = tokenizer.next_token();
     }
 
-#if 0
-    do
-    {
-        tokenizer.require_next_token(Token_Type::comma);
-
-        Token &token = tokenizer.require_next_token(Token_Type::number);
-
-        if (args_counter == half_array_len)
-        {
-            cout << std::fixed << token.num << "], [";
-        }
-        else
-        {
-            cout << std::fixed << token.num << ", ";
-        }
-
-        ++args_counter;
-
-    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
-#endif // 0
-
     cout << "]";
 
-    cout << tokenizer.require_next_token(Token_Type::close_curly_bracket).value;
+    cout << current_token->value; // }
 
-    //cout << ss.str() << endl;
     int stop = 0;
 }
 
@@ -776,10 +740,10 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer)
 
         ++args_counter;
 
-    } while (tokenizer.peek_token() != Token_Type::close_curly_bracket);
+    } while (*tokenizer.peek_token() != Token_Type::close_curly_bracket);
 
-    rows = (unsigned)tokenizer.prev_token(2).num;
-    cols = (unsigned)tokenizer.current_token().num;
+    rows = (unsigned)tokenizer.prev_token(2)->num;
+    cols = (unsigned)tokenizer.current_token()->num;
 
     args_counter -= 2;
 
@@ -790,33 +754,33 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer)
 
 void augment_interpolation_2d(Tokenizer &tokenizer)
 {
-    cout << tokenizer.current_token().value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket).value << " ";
+    cout << tokenizer.current_token()->value << " "; // name of the function
+    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
 
     const unsigned num_params_before_array = 4;
     for (unsigned param = 1;
          param <= num_params_before_array;
          ++param)
     {
-        if (tokenizer.peek_token() == Token_Type::variable)
+        if (*tokenizer.peek_token() == Token_Type::variable)
         {
-            cout << tokenizer.next_token().value << " ";
+            cout << tokenizer.next_token()->value << " ";
         }
-        else if (tokenizer.peek_token() == Token_Type::function)
+        else if (*tokenizer.peek_token() == Token_Type::function)
         {
             tokenizer.next_token();
             augment_function(tokenizer);
         }
         else
         {
-            std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token().type) +
-                " Line:" + std::to_string(tokenizer.peek_token().line) + " Col:" + std::to_string(tokenizer.peek_token().col);
+            std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+                " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
             throw std::exception(error.c_str());
         }
 
         if (param != num_params_before_array)
         {
-            cout << tokenizer.require_next_token(Token_Type::comma).value << " ";
+            cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
         }
     }
 
@@ -840,11 +804,11 @@ void augment_interpolation_2d(Tokenizer &tokenizer)
     {
         tokenizer.require_next_token(Token_Type::comma);
 
-        Token &token = tokenizer.require_next_token(Token_Type::number);
+        Token *token = tokenizer.require_next_token(Token_Type::number);
 
         if (elem % cols == 0)
         {
-            cout << token.value;
+            cout << token->value;
             if (elem != array_len)
             {
                 cout << "], [";
@@ -852,7 +816,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer)
         }
         else
         {
-            cout << token.value << ", ";
+            cout << token->value << ", ";
         }
 
     }
@@ -862,7 +826,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer)
     tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number);
     tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number);
 
-    cout << tokenizer.require_next_token(Token_Type::close_curly_bracket).value;
+    cout << tokenizer.require_next_token(Token_Type::close_curly_bracket)->value;
 
     int stop = 0;
 }
@@ -871,9 +835,9 @@ void augment_interpolation_2d(Tokenizer &tokenizer)
 
 void augment_function(Tokenizer &tokenizer)
 {
-    const Token &token = tokenizer.current_token();
+    const Token *token = tokenizer.current_token();
 
-    const std::string &function_name = token.value;
+    const std::string &function_name = token->value;
 
     auto it = functions_map.find(function_name);
     if (it != functions_map.end())
@@ -889,11 +853,11 @@ void parse(const std::string &input)
 
     std::ostringstream ss;
 
-    Token &current_token = tokenizer.current_token();
+    Token *current_token = tokenizer.current_token();
 
-    while (current_token != Token_Type::end_of_tokens)
+    while (*current_token != Token_Type::end_of_tokens)
     {
-        if (current_token == Token_Type::function)
+        if (*current_token == Token_Type::function)
         {
             augment_function(tokenizer);
         }
