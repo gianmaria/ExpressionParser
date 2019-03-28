@@ -1,49 +1,3 @@
-#if 0
-interpolation{
-    BF_CLC03_GOVLIM_IDX03_INDEX ,
-    BF_CLC03_GOVLIM_IDX03_ALPHA ,
-    7.5000000000 , 16.0000000000 , 25.0000000000 , 40.5000000000 , 35.5000000000
-}
-
-lookuptable{
-    CLW07_FLAPS,
-    0.0000000000, 5.0000000000, 10.0000000000, 15.0000000000, 20.0000000000, 25.0000000000, 30.0000000000, 35.0000000000, 40.0000000000, 0.0000000000, 0.1000000000, 0.2000000000, 0.3150000000, 0.4163000000, 0.4801000000, 0.5438000000, 0.6076000000, 0.6714000000
-}
-
-interpolation2D{
-    searchindex{
-        BF_CLA02_NZAOA_S03 ,
-        -0.2000000000 , 0.5000000000 , 0.7120000000 , 1.1120000000 , 1.1200000000 , 1.2120000000 , 1.5000000000 , 1.6270000000
-    } ,
-    searchalpha{
-        BF_CLA02_NZAOA_S03 ,
-        -0.2000000000 , 0.5000000000 , 0.7120000000 , 1.1120000000 , 1.1200000000 , 1.2120000000 , 1.5000000000 , 1.6270000000
-    } ,
-    searchindex{
-        MACH_SEL ,
-        0.2000000000 , 0.3000000000 , 0.4000000000 , 0.5000000000
-    } ,
-    searchalpha{
-        MACH_SEL ,
-        0.2000000000 , 0.3000000000 , 0.4000000000 , 0.5000000000
-    } ,
-    -6.1300000000 , -6.1300000000 , -6.1340000000 , -6.1340000000 , 0.8750000000 , 0.8750000000 , 0.8767000000 , 1.0000000000 , 3.0000000000 , 3.0000000000 , 3.0000000000 , 1.0000000000 , 7.0000000000 , 7.0000000000 , 8.8800000000 , 1.0000000000 , 7.0800000000 , 7.1600000000 , 9.0000000000 , 1.0000000000 , 8.0000000000 , 9.0000000000 , 9.0000000000 , 1.0000000000 , 14.2450000000 , 15.0000000000 , 9.0000000000 , 1.0000000000 , 17.0000000000 , 15.0000000000 , 9.0000000000 , 1.0000000000 ,
-    8.0 ,
-    4.0
-}
-
-searchindex{
-    BF_CLA02_NZAOA_S03 ,
-    -0.2000000000 , 0.5000000000 , 0.7120000000 , 1.1120000000 , 1.1200000000 , 1.2120000000 , 1.5000000000 , 1.6270000000
-}
-
-searchalpha{
-    MACH_SEL ,
-    0.2000000000 , 0.3000000000 , 0.4000000000 , 0.5000000000
-}
-
-#endif
-
 #include <iostream> // cout
 #include <string>
 #include <vector>
@@ -114,7 +68,7 @@ struct Token
     Token_Type type = Token_Type::unknown;
     //BlockType  xml_type = BlockType::txt;
     std::string value = "";
-    float num = 0.0f;
+    float num = 0.0f; // @TODO: usare un optional<float> ?
 
     unsigned line = 1;
     unsigned col = 1;
@@ -685,7 +639,7 @@ void augment_lookuptable(Tokenizer &tokenizer)
     unsigned args_counter = 1;
 
     cout << " [";
-    
+
     Token *current_token = tokenizer.next_token();
 
     while (*current_token != Token_Type::close_curly_bracket)
@@ -711,7 +665,7 @@ void augment_lookuptable(Tokenizer &tokenizer)
         {
             cout << current_token->value << " ";
         }
-        
+
         current_token = tokenizer.next_token();
     }
 
@@ -732,18 +686,30 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer)
     unsigned cols = 0;
     unsigned args_counter = 0;
 
-    do
+    Token *current_token = tokenizer.next_token();
+    
+    while (*current_token != Token_Type::close_curly_bracket)
     {
-        tokenizer.require_next_token(Token_Type::comma);
 
-        tokenizer.require_next_token(Token_Type::number);
+        if (*current_token == Token_Type::function)
+        {
+            ++args_counter;
+            augment_function(tokenizer);
+        }
+        else if (*current_token == Token_Type::number)
+        {
+            ++args_counter;
+        }
+        else
+        {
+            // ','
+        }
 
-        ++args_counter;
-
-    } while (*tokenizer.peek_token() != Token_Type::close_curly_bracket);
-
-    rows = (unsigned)tokenizer.prev_token(2)->num;
-    cols = (unsigned)tokenizer.current_token()->num;
+        current_token = tokenizer.next_token();
+    }
+    
+    cols = (unsigned)tokenizer.prev_token(1)->num;
+    rows = (unsigned)tokenizer.prev_token(3)->num;
 
     args_counter -= 2;
 
@@ -797,34 +763,46 @@ void augment_interpolation_2d(Tokenizer &tokenizer)
     }
 
     cout << ", [ [ ";
+    tokenizer.next_token(); // skip the ','
 
     for (unsigned elem = 1;
          elem <= array_len;
-         ++elem)
+         )
     {
-        tokenizer.require_next_token(Token_Type::comma);
+        Token *current_token = tokenizer.next_token();
 
-        Token *token = tokenizer.require_next_token(Token_Type::number);
-
-        if (elem % cols == 0)
+        if (*current_token == Token_Type::function)
         {
-            cout << token->value;
-            if (elem != array_len)
+            augment_function(tokenizer);
+            ++elem;
+        }
+        else if (*current_token == Token_Type::number)
+        {
+            if (elem % cols == 0)
             {
-                cout << "], [";
+                cout << current_token->value;
+                if (elem != array_len)
+                {
+                    cout << "], [";
+                    tokenizer.next_token(); // skip the ','
+                }
             }
+            else
+            {
+                cout << current_token->value << " ";
+            }
+            ++elem;
         }
         else
         {
-            cout << token->value << ", ";
+            cout << current_token->value << " "; // ','
         }
-
     }
 
     cout << "] ]";
 
-    tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number);
-    tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number);
+    tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // rows token
+    tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // cols token
 
     cout << tokenizer.require_next_token(Token_Type::close_curly_bracket)->value;
 
@@ -867,6 +845,17 @@ void parse(const std::string &input)
 
 }
 
+void test_input(const std::string &input)
+{
+    cout << "INPUT: " << endl;
+    cout << input << endl << endl;
+
+    cout << "OUTPUT:" << endl;
+    parse(input);
+
+    cout << endl << endl << endl;
+}
+
 int main()
 {
     // R"delimiter( raw_characters )delimiter"	
@@ -897,19 +886,17 @@ int main()
 
     try
     {
-        std::string test_input;
-
 #if 0
-        test_input = "interpolation{ var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+        test_input("interpolation{ var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }");
 
-        test_input = "interpolation{ interpolation{ var1, var2, 1.0, -45.9}, var3, 1.0, 2.0, -3.0, -4.0, 5.0 }";
-        test_input = "interpolation{ var3, interpolation{ var1, var2, 1.0, -45.9}, 1.0, 2.0, -3.0, -4.0, 5.0 }";
-        test_input = "interpolation{ interpolation{ var1, var2, 3.14, -45.9}, interpolation{ var3, var4, 7.0, -88.9}, 1.0, -3.0, -4.0, 5.0 }";
-        test_input = "interpolation { BF_CLC03_GOVLIM_IDX03_INDEX, BF_CLC03_GOVLIM_IDX03_ALPHA, 7.5000000000, 16.0000000000, 25.0000000000, 40.5000000000, 35.5000000000}";
-        test_input = "lookuptable { interpolation { var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, -10.0, 20.0}";
-        test_input = "searchindex{ var4, 4, 5, -6}";
-        test_input = "searchindex{ searchindex{ var1, 1}, 4, 5, -6}";
-        test_input = R"FOO(
+        test_input("interpolation{ interpolation{ var1, var2, 1.0, -45.9}, var3, 1.0, 2.0, -3.0, -4.0, 5.0 }");
+        test_input("interpolation{ var3, interpolation{ var1, var2, 1.0, -45.9}, 1.0, 2.0, -3.0, -4.0, 5.0 }");
+        test_input("interpolation{ interpolation{ var1, var2, 3.14, -45.9}, interpolation{ var3, var4, 7.0, -88.9}, 1.0, -3.0, -4.0, 5.0 }");
+        test_input("interpolation { BF_CLC03_GOVLIM_IDX03_INDEX, BF_CLC03_GOVLIM_IDX03_ALPHA, 7.5000000000, 16.0000000000, 25.0000000000, 40.5000000000, 35.5000000000}");
+        test_input("lookuptable { interpolation { var1, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, -10.0, 20.0}");
+        test_input("searchindex{ var4, 4, 5, -6}");
+        test_input("searchindex{ searchindex{ var1, 1}, 4, 5, -6}");
+        test_input(R"FOO(
 searchindex {
     interpolation {
         interpolation { var1, var2, 3.14, -45.9},
@@ -918,8 +905,8 @@ searchindex {
             -10.0, 20.0},
         1.0, -3.0, -4.0, 5.0 },
     -0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}
-)FOO";
-        test_input = R"FOO(
+)FOO");
+        test_input(R"FOO(
 searchalpha{ 
     searchindex {
         interpolation {
@@ -929,28 +916,28 @@ searchalpha{
                 -10.0, 20.0},
             1.0, -3.0, -4.0, 5.0 },
         -0.2000000000, 0.5000000000, 0.7120000000, 1.1120000000, 1.1200000000, 1.2120000000, 1.5000000000, 1.6270000000}, 4, 5, -6}
-)FOO";
-        test_input = "interpolation2d{var1, var2, var3, var4, 1,2,3,4,5,6,7,8,9,10,11,12, 3, 4}";
-        test_input = "interpolation2d{var1, var2, var3, var4, 99,100, 1,2}";
+)FOO");
+        test_input("interpolation2d{var1, var2, var3, var4, 1,2,3,4,5,6,7,8,9,10,11,12, 3, 4}");
+        test_input("interpolation2d{var1, var2, var3, var4, 99,100, 1,2}");
 
-        test_input = ss.str();
+        test_input(ss.str());
 
-        test_input = "interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }";
-        test_input = R"FOO(
+        test_input("interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }");
+        test_input(R"FOO(
 DIVISION { 2.0 * UPDATABLE_CONSTANTS.LOCAL_UPDATABLE_PITCH_CMD_T_LL1 + 0.01 , 
            2.0 * DIVISION { 
                1.0 ,UPDATABLE_CONSTANTS.LOCAL_UPDATABLE_PITCH_CMD_W_LL1 } + 0.01 
          }
-)FOO";
-        test_input = "sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}";
-        test_input = "interpolation{ sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}, interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, 1.0, 2.0, -3.0, -4.0, 5.0 }";
+)FOO");
+        test_input("sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}");
+        test_input("interpolation{ sin{ 2 * 456.21 - DIVISION {98.2, sin{45.0}}}, interpolation{ sin{456.21}, var2, 1.0, 2.0, -3.0, -4.0, 5.0 }, 1.0, 2.0, -3.0, -4.0, 5.0 }");
 
-        test_input = "searchalpha{searchalpha{sin{12.5}, 1,2,3}, 4,5}";
-        test_input = "searchalpha{searchalpha{sin{searchalpha{var44, 3, 3}}, 1,2,3}, 4,5}";
-        test_input = "searchalpha{ var1, 4,5 }";
-        test_input = "searchalpha{searchalpha{var1, 4,5}, 6,7}";
+        test_input("searchalpha{searchalpha{sin{12.5}, 1,2,3}, 4,5}");
+        test_input("searchalpha{searchalpha{sin{searchalpha{var44, 3, 3}}, 1,2,3}, 4,5}");
+        test_input("searchalpha{ var1, 4,5 }");
+        test_input("searchalpha{searchalpha{var1, 4,5}, 6,7}");
 
-        test_input = R"FOO(
+        test_input(R"FOO(
 searchindex{
     searchalpha{
         DIVISION{3, 5}, 
@@ -958,23 +945,20 @@ searchindex{
     }, 
     sin{18.5}, 10, 11
 }
-)FOO";
-        test_input = "interpolation{var1, var2, 6,7,8,9,10}";
-        test_input = "interpolation{searchalpha{ var1, 4,5 }, var2, 6,7}";
-        test_input = "interpolation{var44, searchalpha{ var1, 4, 5, 8 }, 6,7}";
-        test_input = "interpolation{searchalpha{ var1, 4, 5, 8 }, searchalpha{ var1, 64, 75, 998 }, 6, 7}";
-        test_input = "interpolation{searchalpha{ var1, 4, 5, 8 }, searchalpha{ var1, 64, 75, 998 }, 6, sin{sin{45.5}}}";
+)FOO");
+        test_input("interpolation{var1, var2, 6,7,8,9,10}");
+        test_input("interpolation{searchalpha{ var1, 4,5 }, var2, 6,7}");
+        test_input("interpolation{var44, searchalpha{ var1, 4, 5, 8 }, 6,7}");
+        test_input("interpolation{searchalpha{ var1, 4, 5, 8 }, searchalpha{ var1, 64, 75, 998 }, 6, 7}");
+        test_input("interpolation{searchalpha{ var1, 4, 5, 8 }, searchalpha{ var1, 64, 75, 998 }, 6, sin{sin{45.5}}}");
+        test_input("lookuptable{var1, 1,2,3,4,5,6,7,8}");
 #endif // 0
 
-        test_input = "lookuptable{var1, 1,2,3,4,5,6,7,8}";
+        test_input("interpolation2d{var1, var2, var3, var4, 1,2,3,4,5,6,7,8, 4,2}");
+        test_input("interpolation2d{var1, sin{123}, var3, var4, 1,2,3,4,5,6,7,8, 4,2}");
+        test_input("interpolation2d{var1, sin{123}, var3, var4, 1,2,3,4,sin{123},6,7,sin{7894.25}, 2,4}");
 
-        cout << "INPUT: " << endl << test_input << endl << endl;
-
-        cout << "OUTPUT:" << endl;
-        parse(test_input);
-
-        cout << endl;
-
+        test_input("interpolation2d{searchindex{BF_CLA02_NZAOA_S03,-0.2000000000,0.5000000000,0.7120000000,1.1120000000,1.1200000000,1.2120000000,1.5000000000,1.6270000000},searchalpha{BF_CLA02_NZAOA_S03,-0.2000000000,0.5000000000,0.7120000000,1.1120000000,1.1200000000,1.2120000000,1.5000000000,1.6270000000},searchindex{MACH_SEL,0.2000000000,0.3000000000,0.4000000000,0.5000000000},searchalpha{MACH_SEL,0.2000000000,0.3000000000,0.4000000000,0.5000000000},-6.1300000000,-6.1300000000,-6.1340000000,-6.1340000000,0.8750000000,0.8750000000,0.8767000000,1.0000000000,3.0000000000,3.0000000000,3.0000000000,1.0000000000,7.0000000000,7.0000000000,8.8800000000,1.0000000000,7.0800000000,7.1600000000,9.0000000000,1.0000000000,8.0000000000,9.0000000000,9.0000000000,1.0000000000,14.2450000000,15.0000000000,9.0000000000,1.0000000000,17.0000000000,15.0000000000,9.0000000000,1.0000000000,8.0,4.0}");
         std::getc(stdin);
     }
     catch (const std::exception &e)
