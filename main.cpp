@@ -290,12 +290,12 @@ bool is_function(const std::string &fn)
 
 
 
-void augment_function(Tokenizer&, std::list<rhs>&);
+void process_function(Tokenizer&, std::list<rhs>&);
 
 void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
 {
-    cout << tokenizer.current_token()->value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
+    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
     Token *current_token = tokenizer.next_token();
 
@@ -303,17 +303,17 @@ void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
-            cout << current_token->value << " ";
+            res.push_back(current_token->to_rhs());
         }
 
         current_token = tokenizer.next_token();
     }
 
-    cout << current_token->value << " "; // }
+    res.push_back(current_token->to_rhs()); // }
 
     int stop = 0;
 }
@@ -336,7 +336,7 @@ void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
         else if (*tokenizer.peek_token() == Token_Type::function)
         {
             tokenizer.next_token();
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
@@ -356,7 +356,7 @@ void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
@@ -383,7 +383,7 @@ void augment_searchindex(Tokenizer &tokenizer, std::list<rhs> &res)
     else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
-        augment_function(tokenizer, res);
+        process_function(tokenizer, res);
     }
     else
     {
@@ -402,7 +402,7 @@ void augment_searchindex(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
@@ -429,7 +429,7 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
     else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
-        augment_function(tokenizer, res);
+        process_function(tokenizer, res);
     }
     else
     {
@@ -448,7 +448,7 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
@@ -476,7 +476,7 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
             ++array_len;
         }
         else if (*current_token == Token_Type::number)
@@ -514,7 +514,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     else if (*tokenizer.peek_token() == Token_Type::function)
     {
         tokenizer.next_token();
-        augment_function(tokenizer, res);
+        process_function(tokenizer, res);
     }
     else
     {
@@ -542,7 +542,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else if (*current_token == Token_Type::number)
         {
@@ -590,7 +590,7 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
         if (*current_token == Token_Type::function)
         {
             ++args_counter;
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else if (*current_token == Token_Type::number)
         {
@@ -631,7 +631,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
         else if (*tokenizer.peek_token() == Token_Type::function)
         {
             tokenizer.next_token();
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
@@ -669,7 +669,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
             ++elem;
         }
         else if (*current_token == Token_Type::number)
@@ -707,7 +707,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 
 
 
-void augment_function(Tokenizer &tokenizer, std::list<rhs> &res)
+void process_function(Tokenizer &tokenizer, std::list<rhs> &res)
 {
     Token *token = tokenizer.current_token();
 
@@ -828,7 +828,7 @@ augment(const std::list<rhs> &input)
     {
         if (*current_token == Token_Type::function)
         {
-            augment_function(tokenizer, res);
+            process_function(tokenizer, res);
         }
         else
         {
