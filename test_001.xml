@@ -426,7 +426,7 @@
   <block type="txt">}</block>
 </rhs>-->
 
-<rhs>
+<!--<rhs>
   <block type="txt">abs</block>
   <block type="txt">{</block>
   <block type="txt">interpolation</block>
@@ -456,6 +456,220 @@
   <block type="txt">0.0000000000</block>
   <block type="txt">,</block>
   <block type="txt">0.0000000000</block>
+  <block type="txt">}</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+<!--<rhs>
+  <block type="txt">1.0850000000</block>
+  <block type="txt">*</block>
+  <block type="txt">interpolation</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLE05_TLIML_IDX02_INDEX</block>
+  <block type="txt">,</block>
+  <block type="tmp">BF_CLE05_TLIML_IDX02_ALPHA</block>
+  <block type="txt">,</block>
+  <block type="txt">0.4252050000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.5329930000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.6626850000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.8170530000</block>
+  <block type="txt">,</block>
+  <block type="txt">1.0000000000</block>
+  <block type="txt">}</block>
+  <block type="txt">*</block>
+  <block type="txt">interpolation</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLE05_TLIML_IDX01_INDEX</block>
+  <block type="txt">,</block>
+  <block type="tmp">BF_CLE05_TLIML_IDX01_ALPHA</block>
+  <block type="txt">,</block>
+  <block type="txt">0.5382183050</block>
+  <block type="txt">,</block>
+  <block type="txt">0.6175925730</block>
+  <block type="txt">,</block>
+  
+  <block type="txt">sin</block>
+  <block type="txt">{</block>
+  <block type="txt">44.5</block>
+  <block type="txt">}</block>
+  
+  
+  <block type="txt">,</block>
+  <block type="txt">0.8083339410</block>
+  <block type="txt">,</block>
+  <block type="txt">0.8616903910</block>
+  <block type="txt">,</block>
+  <block type="txt">0.9047370920</block>
+  <block type="txt">,</block>
+  <block type="txt">0.9864000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1.0149402790</block>
+  <block type="txt">,</block>
+  <block type="txt">1.0480352380</block>
+  <block type="txt">,</block>
+  <block type="txt">1.0868660590</block>
+  <block type="txt">,</block>
+  <block type="txt">1.1330695920</block>
+  <block type="txt">,</block>
+  <block type="txt">1.1895859210</block>
+  <block type="txt">,</block>
+  <block type="txt">1.2474728230</block>
+  <block type="txt">,</block>
+  <block type="txt">1.5676838840</block>
+  <block type="txt">,</block>
+  <block type="txt">1.8883616330</block>
+  <block type="txt">,</block>
+  <block type="txt">2.2472767850</block>
+  <block type="txt">}</block>
+  <block type="txt">*</block>
+  <block type="tmp">BF_CLE05_TLIML_S03</block>
+  <block type="txt">+</block>
+  <block type="tmp">BF_CLE05_TLIML_INT01_ASYMMETRICAL_SATURATION_SATURATION_LIMITER</block>
+</rhs>-->
+
+<!--<rhs>
+  <block type="txt">switch</block>
+  <block type="txt">{</block>
+  <block type="txt">125.0000000000</block>
+  <block type="txt">,</block>
+  <block type="tp">DTS_FTIM_ROTOR_GOV_DISENG</block>
+  <block type="txt">,</block>
+  <block type="txt">lookuptable</block>
+  <block type="txt">{</block>
+  <block type="tp">CLC04_RPMC</block>
+  <block type="txt">,</block>
+  <block type="txt">455.2000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">597.4500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">83.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">108.0000000000</block>
+  <block type="txt">}</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+<!--<rhs>
+  <block type="txt">switch</block>
+  <block type="txt">{</block>
+  <block type="txt">lookuptable</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLC13_ADPTGOV_SW02</block>
+  <block type="txt">,</block>
+  <block type="txt">815.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">845.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">865.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">925.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1738.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1738.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1900.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">2300.0000000000</block>
+  <block type="txt">}</block>
+  <block type="txt">,</block>
+  <block type="tp">ACD_REMATCHED_ENG_SEL</block>
+  <block type="txt">,</block>
+  <block type="txt">lookuptable</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLC13_ADPTGOV_SW02</block>
+  <block type="txt">,</block>
+  <block type="txt">835.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">870.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">890.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">960.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1738.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1738.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1900.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">2300.0000000000</block>
+  <block type="txt">}</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+
+<rhs>
+  <block type="txt">switch</block>
+  <block type="txt">{</block>
+  <block type="tp">XC_IC_LENIN</block>
+  <block type="txt">,</block>
+  <block type="tp">XC_IC_VLD</block>
+  <block type="txt">,</block>
+  <block type="txt">switch</block>
+  <block type="txt">{</block>
+  <block type="txt">lookuptable</block>
+  <block type="txt">{</block>
+  <block type="tp">L_ENG_TM_POS_SEL</block>
+  <block type="txt">,</block>
+  <block type="txt">-0.3500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">-0.1250000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.1500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.3500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">65.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">84.6150000000</block>
+  <block type="txt">,</block>
+  <block type="txt">98.5400000000</block>
+  <block type="txt">,</block>
+  <block type="txt">105.2300000000</block>
+  <block type="txt">,</block>
+  <block type="txt">110.6100000000</block>
+  <block type="txt">,</block>
+  <block type="txt">114.3700000000</block>
+  <block type="txt">}</block>
+  <block type="txt">,</block>
+  <block type="tp">ENG_PROD_DISC</block>
+  <block type="txt">,</block>
+  <block type="txt">lookuptable</block>
+  <block type="txt">{</block>
+  <block type="tp">L_ENG_TM_POS_SEL</block>
+  <block type="txt">,</block>
+  <block type="txt">-0.3500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">-0.1250000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.1500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.3500000000</block>
+  <block type="txt">,</block>
+  <block type="txt">56.1220000000</block>
+  <block type="txt">,</block>
+  <block type="txt">77.0570000000</block>
+  <block type="txt">,</block>
+  <block type="txt">92.5660000000</block>
+  <block type="txt">,</block>
+  <block type="txt">100.4280000000</block>
+  <block type="txt">,</block>
+  <block type="txt">107.3680000000</block>
+  <block type="txt">,</block>
+  <block type="txt">113.0250000000</block>
+  <block type="txt">}</block>
   <block type="txt">}</block>
   <block type="txt">}</block>
 </rhs>

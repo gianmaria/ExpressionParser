@@ -270,7 +270,8 @@ functions_map =
 
     {"sin",             process_simple_function},
     {"DIVISION",        process_simple_function},
-    {"abs",             process_simple_function}
+    {"abs",             process_simple_function},
+    {"switch",          process_simple_function},
 };
 
 
@@ -464,13 +465,15 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
 }
 
 
+
+
 unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 {
     tokenizer.save_state();
 
     unsigned array_len = 0;
 
-    const Token *current_token = tokenizer.next_token();
+    Token *current_token = tokenizer.next_token();
 
     while (*current_token != Token_Type::close_curly_bracket)
     {
@@ -494,7 +497,7 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
             throw std::exception(error.c_str());
         }
 
-        current_token = tokenizer.next_token(); // @TODO: chiedere a matteo perchè in current_token viene copiato next_token
+        current_token = tokenizer.next_token();
     }
 
     tokenizer.restore_state();
@@ -504,12 +507,12 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 
 void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 {
-    cout << tokenizer.current_token()->value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
+    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
     if (*tokenizer.peek_token() == Token_Type::variable)
     {
-        cout << tokenizer.next_token()->value << " ";
+        res.push_back(tokenizer.next_token()->to_rhs());
     }
     else if (*tokenizer.peek_token() == Token_Type::function)
     {
@@ -522,7 +525,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
             " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
         throw std::exception(error.c_str());
     }
-    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
+    res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
 
     unsigned array_len = array_len_lookuptable(tokenizer, res);
 
@@ -534,8 +537,8 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     unsigned half_array_len = array_len / 2;
     unsigned args_counter = 1;
 
-    cout << " [";
-
+    res.push_back(std::make_pair(BlockType::txt, "["));
+    
     Token *current_token = tokenizer.next_token();
 
     while (*current_token != Token_Type::close_curly_bracket)
@@ -546,31 +549,34 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
         }
         else if (*current_token == Token_Type::number)
         {
+            res.push_back(current_token->to_rhs());
+
             if (args_counter == half_array_len)
             {
-                cout << current_token->value << "], [";
+                res.push_back(std::make_pair(BlockType::txt, "]"));
+                res.push_back(std::make_pair(BlockType::txt, ","));
+                res.push_back(std::make_pair(BlockType::txt, "["));
+
                 tokenizer.next_token(); // skip the ','
-            }
-            else
-            {
-                cout << current_token->value << " ";
             }
             ++args_counter;
         }
         else
         {
-            cout << current_token->value << " ";
+            res.push_back(current_token->to_rhs());
         }
 
         current_token = tokenizer.next_token();
     }
 
-    cout << "]";
+    res.push_back(std::make_pair(BlockType::txt, "]"));
 
-    cout << current_token->value; // }
+    res.push_back(current_token->to_rhs()); // }
 
     int stop = 0;
 }
+
+
 
 
 std::tuple<unsigned, unsigned, unsigned>
@@ -921,10 +927,11 @@ int main()
     try
     {
         std::list<rhs> input = get_input_from_xml_file("test_001.xml");
+        cout << "INPUT:" << endl << input << endl << endl;
 
         std::list<rhs> output = augment(input);
+        cout << "OUTPUT:" << endl << output << endl << endl;
 
-        cout << output << endl;
 
         std::getc(stdin);
     }
