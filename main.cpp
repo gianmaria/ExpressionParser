@@ -319,7 +319,6 @@ void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
     int stop = 0;
 }
 
-
 void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
 {
     res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
@@ -464,9 +463,6 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
     res.push_back(current_token->to_rhs()); // }
 }
 
-
-
-
 unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 {
     tokenizer.save_state();
@@ -592,7 +588,6 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 
     while (*current_token != Token_Type::close_curly_bracket)
     {
-
         if (*current_token == Token_Type::function)
         {
             ++args_counter;
@@ -613,7 +608,7 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
     cols = (unsigned)tokenizer.prev_token(1)->num;
     rows = (unsigned)tokenizer.prev_token(3)->num;
 
-    args_counter -= 2;
+    args_counter -= 2; // last two token are cols number and rows number
 
     tokenizer.restore_state();
 
@@ -622,17 +617,17 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 
 void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 {
-    cout << tokenizer.current_token()->value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
+    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    const unsigned num_params_before_array = 4;
+    unsigned num_params_before_array = 4;
     for (unsigned param = 1;
          param <= num_params_before_array;
          ++param)
     {
         if (*tokenizer.peek_token() == Token_Type::variable)
         {
-            cout << tokenizer.next_token()->value << " ";
+            res.push_back(tokenizer.next_token()->to_rhs());
         }
         else if (*tokenizer.peek_token() == Token_Type::function)
         {
@@ -646,10 +641,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
             throw std::exception(error.c_str());
         }
 
-        if (param != num_params_before_array)
-        {
-            cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
-        }
+        res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
     }
 
     std::tuple<unsigned, unsigned, unsigned> args_interpolation_2d = get_args_for_interpolation_2d(tokenizer, res);
@@ -664,8 +656,8 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
         throw std::exception("(rows * cols) does not match len of array!");
     }
 
-    cout << ", [ [ ";
-    tokenizer.next_token(); // skip the ','
+    res.push_back(std::make_pair(BlockType::txt, "["));
+    res.push_back(std::make_pair(BlockType::txt, "["));
 
     for (unsigned elem = 1;
          elem <= array_len;
@@ -682,34 +674,39 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
         {
             if (elem % cols == 0)
             {
-                cout << current_token->value;
+                res.push_back(current_token->to_rhs());
                 if (elem != array_len)
                 {
-                    cout << "], [";
-                    tokenizer.next_token(); // skip the ','
+                    res.push_back(std::make_pair(BlockType::txt, "]"));
+                    res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs()); // ,
+                    res.push_back(std::make_pair(BlockType::txt, "["));
                 }
             }
             else
             {
-                cout << current_token->value << " ";
+                res.push_back(tokenizer.current_token()->to_rhs());
             }
             ++elem;
         }
         else
         {
-            cout << current_token->value << " "; // ','
+            res.push_back(tokenizer.current_token()->to_rhs());
         }
     }
 
-    cout << "] ]";
+    res.push_back(std::make_pair(BlockType::txt, "]"));
+    res.push_back(std::make_pair(BlockType::txt, "]"));
 
     tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // rows token
     tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // cols token
 
-    cout << tokenizer.require_next_token(Token_Type::close_curly_bracket)->value;
+    res.push_back(tokenizer.require_next_token(Token_Type::close_curly_bracket)->to_rhs());
 
     int stop = 0;
 }
+
+
+
 
 
 
@@ -891,29 +888,36 @@ std::list<rhs> get_input_from_xml_file(const char *filename)
 
 
     const XMLElement *root = doc.FirstChildElement();
-    const XMLElement *block = root->FirstChildElement();
+    const XMLElement *rhs = root->FirstChildElement();
 
-    while (block)
+    while (rhs)
     {
-        const char *block_type_ = block->Attribute("type");
-        const char *text_ = block->GetText();
-
-        int line_num = block->GetLineNum();
-
-        if (!block_type_ || !text_)
+        const XMLElement *block = rhs->FirstChildElement();
+        
+        while (block)
         {
-            std::string error = "BlockType or text not found. Line: " + std::to_string(line_num);
-            throw std::exception(error.c_str());
+            const char *block_type_ = block->Attribute("type");
+            const char *text_ = block->GetText();
+
+            int line_num = block->GetLineNum();
+
+            if (!block_type_ || !text_)
+            {
+                std::string error = "BlockType or text not found. Line: " + std::to_string(line_num);
+                throw std::exception(error.c_str());
+            }
+
+            std::string text(text_);
+            BlockType block_type = str_to_block_type(block_type_);
+
+            auto pair = std::make_pair(block_type, text);
+
+            input.push_back(pair);
+
+            block = block->NextSiblingElement();
         }
 
-        std::string text(text_);
-        BlockType block_type = str_to_block_type(block_type_);
-
-        auto pair = std::make_pair(block_type, text);
-
-        input.push_back(pair);
-
-        block = block->NextSiblingElement();
+        rhs = rhs->NextSiblingElement();
     }
 
     return input;
