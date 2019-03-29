@@ -249,15 +249,18 @@ std::string read_str(const std::string &input)
 
 
 // enhancer.h
-void augment_lookuptable(Tokenizer&, std::list<rhs> &);
-void augment_interpolation_1d(Tokenizer&, std::list<rhs> &);
 void augment_searchindex(Tokenizer&, std::list<rhs> &);
 void augment_searchalpha(Tokenizer&, std::list<rhs> &);
+void augment_interpolation_1d(Tokenizer&, std::list<rhs> &);
+
+void augment_lookuptable(Tokenizer&, std::list<rhs> &);
 void augment_interpolation_2d(Tokenizer&, std::list<rhs> &);
-void augment_simple_function(Tokenizer&, std::list<rhs> &);
+
+void process_simple_function(Tokenizer&, std::list<rhs> &);
 
 
-std::map<std::string, std::function<void(Tokenizer&, std::list<rhs>&)>> functions_map =
+std::map<std::string, std::function<void(Tokenizer&, std::list<rhs>&)>> 
+functions_map = 
 {
     {"interpolation",   augment_interpolation_1d},
     {"lookuptable",     augment_lookuptable},
@@ -265,8 +268,9 @@ std::map<std::string, std::function<void(Tokenizer&, std::list<rhs>&)>> function
     {"searchalpha",     augment_searchalpha},
     {"interpolation2D", augment_interpolation_2d},
 
-    {"sin",             augment_simple_function},
-    {"DIVISION",        augment_simple_function},
+    {"sin",             process_simple_function},
+    {"DIVISION",        process_simple_function},
+    {"abs",             process_simple_function}
 };
 
 
@@ -285,137 +289,10 @@ bool is_function(const std::string &fn)
 }
 
 
-#if 0
-Tokenizer tokenize(const std::string &input)
-{
-    Tokenizer tokenizer;
-    tokenizer.input = input;
-
-    unsigned index = 0;
-    while (index < input.size())
-    {
-        Token token;
-        token.line = tokenizer.line;
-        token.col = tokenizer.col;
-
-        char c = input[index];
-
-        switch (c)
-        {
-            case ',':
-            {
-                token.type = Token_Type::comma;
-                token.value = ",";
-            } break;
-
-            case '{':
-            {
-                token.type = Token_Type::open_curly_bracket;
-                token.value = "{";
-            } break;
-
-            case '}':
-            {
-                token.type = Token_Type::close_curly_bracket;
-                token.value = "}";
-            } break;
-
-            case '-': // @TODO: parsare i numeri negativi direttamente qui?
-            {
-                token.type = Token_Type::minus_sign;
-                token.value = "-";
-            } break;
-
-            case '+':
-            {
-                token.type = Token_Type::plus_sign;
-                token.value = "+";
-            } break;
-
-            case '*':
-            {
-                token.type = Token_Type::multiply_sign;
-                token.value = "*";
-            } break;
-
-            case ' ':
-            {
-                tokenizer.col += 1;
-                index += 1;
-                continue;
-            } break;
-
-            case '\n':
-            {
-                tokenizer.col = 1;
-                tokenizer.line += 1;
-                index += 1;
-                continue;
-            } break;
-
-            default:
-            {
-                if (std::isdigit(c))
-                {
-                    float num = 0;
-                    unsigned number_len = read_float(input.substr(index), num);
-
-                    token.type = Token_Type::number;
-                    token.value = input.substr(index, number_len);
-                    token.num = num;
-
-                    tokenizer.col += (unsigned)token.value.length();
-                    index += (unsigned)token.value.length();
-
-                    Token last_token = tokenizer.tokens.back();
-                    if (last_token.type == Token_Type::minus_sign)
-                    {
-                        token.value = "-" + token.value; // @TODO: lasciare il numero senza il segno
-                        token.num = -token.num;
-
-                        tokenizer.tokens.pop_back();
-                    }
-
-                    tokenizer.tokens.push_back(token);
-                    continue;
-                }
-                else if (std::isalpha(c))
-                {
-                    std::string str = read_str(input.substr(index));
-
-                    token.type = is_function(str) ? Token_Type::function : Token_Type::variable;
-                    token.value = str;
-                }
-                else
-                {
-                    std::string error = "Invalid char: '"; error.push_back(c); error += "'"
-                        " Line:" + std::to_string(token.line) + " Col:" + std::to_string(token.col);
-                    throw std::exception(error.c_str());
-                }
-            }
-        }
-
-        tokenizer.col += (unsigned)token.value.length();
-        index += (unsigned)token.value.length();
-
-        tokenizer.tokens.push_back(token);
-    }
-
-    Token end;
-    end.type = Token_Type::end_of_tokens;
-    tokenizer.tokens.push_back(end);
-
-    return tokenizer;
-}
-
-#endif // 0
-
-
-
 
 void augment_function(Tokenizer&, std::list<rhs>&);
 
-void augment_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
+void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
 {
     cout << tokenizer.current_token()->value << " "; // name of the function
     cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
@@ -444,46 +321,34 @@ void augment_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
 
 void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
 {
-    cout << tokenizer.current_token()->value << " "; // name of the function
-    cout << tokenizer.require_next_token(Token_Type::open_curly_bracket)->value << " ";
+    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    if (*tokenizer.peek_token() == Token_Type::variable)
+    unsigned args_before_array = 2;
+    for (unsigned arg = 1;
+         arg <= args_before_array;
+         ++arg)
     {
-        cout << tokenizer.next_token()->value << " ";
-    }
-    else if (*tokenizer.peek_token() == Token_Type::function)
-    {
-        tokenizer.next_token();
-        augment_function(tokenizer, res);
-    }
-    else
-    {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
-            " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
-        throw std::exception(error.c_str());
-    }
-
-    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
-
-    if (*tokenizer.peek_token() == Token_Type::variable)
-    {
-        cout << tokenizer.next_token()->value << " ";
-    }
-    else if (*tokenizer.peek_token() == Token_Type::function)
-    {
-        tokenizer.next_token();
-        augment_function(tokenizer, res);
-    }
-    else
-    {
-        std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
-            " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
-        throw std::exception(error.c_str());
+        if (*tokenizer.peek_token() == Token_Type::variable)
+        {
+            res.push_back(tokenizer.next_token()->to_rhs());
+        }
+        else if (*tokenizer.peek_token() == Token_Type::function)
+        {
+            tokenizer.next_token();
+            augment_function(tokenizer, res);
+        }
+        else
+        {
+            std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
+                " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
+            throw std::exception(error.c_str());
+        }
+        
+        res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
     }
 
-    cout << tokenizer.require_next_token(Token_Type::comma)->value << " ";
-
-    cout << " [";
+    res.push_back(std::make_pair(BlockType::txt, "["));
 
     Token *current_token = tokenizer.next_token();
 
@@ -495,15 +360,15 @@ void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
         }
         else
         {
-            cout << current_token->value << " ";
+            res.push_back(current_token->to_rhs());
         }
 
         current_token = tokenizer.next_token();
     }
 
-    cout << "]";
-
-    cout << current_token->value; // }
+    res.push_back(std::make_pair(BlockType::txt, "]"));
+    
+    res.push_back(current_token->to_rhs()); // }
 }
 
 void augment_searchindex(Tokenizer &tokenizer, std::list<rhs> &res)
@@ -858,42 +723,7 @@ void augment_function(Tokenizer &tokenizer, std::list<rhs> &res)
 }
 // enhancer.h
 
-#if 0
-void parse(const std::string &input)
-{
-    Tokenizer tokenizer = tokenize(input);
-
-    std::ostringstream ss;
-
-    Token *current_token = tokenizer.current_token();
-
-    while (*current_token != Token_Type::end_of_tokens)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            augment_function(tokenizer, res);
-        }
-
-        current_token = tokenizer.next_token();
-    }
-
-}
-
-void test_input(const std::string &input)
-{
-    cout << "INPUT: " << endl;
-    cout << input << endl << endl;
-
-    cout << "OUTPUT:" << endl;
-    parse(input);
-
-    cout << endl << endl << endl;
-}
-#endif
-
-
 // parser.h
-
 Token tokenize(const rhs &elem)
 {
     std::string input = elem.second;

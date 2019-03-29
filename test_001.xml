@@ -384,7 +384,7 @@
   <block type="txt">)</block>
 </rhs>-->
 
-<rhs>
+<!--<rhs>
   <block type="txt">switch</block>
   <block type="txt">{</block>
   <block type="tmp">BF_CLS08_PFILT_FIL01_SAT2_LIMITER</block>
@@ -392,5 +392,70 @@
   <block type="tp">CLAW_INIT</block>
   <block type="txt">,</block>
   <block type="mem">CLS08_PFILT_FIL01_M8</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+<!--<rhs>
+  <block type="txt">interpolation</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLW12_FTIPSTIM_IDX01_INDEX</block>
+  <block type="txt">,</block>
+  <block type="tmp">BF_CLW12_FTIPSTIM_IDX01_ALPHA</block>
+  <block type="txt">,</block>
+  <block type="txt">0.5000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.3670000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.3220000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.3040000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2870000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2780000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2670000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2440000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2280000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2220000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.2220000000</block>
+  <block type="txt">}</block>
+</rhs>-->
+
+<rhs>
+  <block type="txt">abs</block>
+  <block type="txt">{</block>
+  <block type="txt">interpolation</block>
+  <block type="txt">{</block>
+  <block type="tmp">BF_CLW12_FTIPSTIM_IDX01_INDEX</block>
+  <block type="txt">,</block>
+  <block type="tmp">BF_CLW12_FTIPSTIM_IDX01_ALPHA</block>
+  <block type="txt">,</block>
+  <block type="txt">1.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">1.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">,</block>
+  <block type="txt">0.0000000000</block>
+  <block type="txt">}</block>
   <block type="txt">}</block>
 </rhs>
