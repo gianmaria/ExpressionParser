@@ -1,5 +1,6 @@
 ﻿<root>
   
+  <!--
   <rhs>
     <block type="tp">TP_CLA02_CLEST_OUT</block>
     <block type="txt">-</block>
@@ -1044,6 +1045,99 @@
     <block type="txt">5.0</block>
     <block type="txt">}</block>
   </rhs>
+  -->
 
 
+  <rhs>
+    <block type="txt">interpolation2D</block>
+
+    <block type="txt">{</block>
+
+    <block type="txt">abs</block>
+
+    <block type="txt">{</block>
+
+    <block type="tp">CLS05_LAG01_01</block>
+
+    <block type="txt">}</block>
+
+    <block type="txt">,</block>
+
+    <block type="tp">CLS05_LAG01_02</block>
+
+    <block type="txt">,</block>
+
+    <block type="tp">CLS05_LAG01_03</block>
+
+    <block type="txt">,</block>
+
+    <block type="tp">CLS05_LAG01_04</block>
+
+    <block type="txt">,</block>
+    
+    <block type="upd">LOCAL_UPDATABLE_KCLS06_IDX01_1</block>
+
+    <block type="txt">,</block>
+
+    <block type="txt">0.3500000000</block>
+
+    <block type="txt">,</block>
+
+    <block type="upd">LOCAL_UPDATABLE_KCLS06_FNC01_1</block>
+
+    <block type="txt">,</block>
+
+    <block type="txt">0.5000000000</block>
+
+    <block type="txt">,</block>
+
+    <block type="txt">2</block>
+    <block type="txt">,</block>
+    <block type="txt">2</block>
+
+    <block type="txt">}</block>
+
+    <block type="txt">*</block>
+
+    <block type="tp">TP_CLS06_LATBKD_S03_OUT</block>
+
+  </rhs>
+
+
+  <rhs>
+    <block type="txt">lookuptable</block>
+
+    <block type="txt">{</block>
+
+    <block type="txt">abs</block>
+
+    <block type="txt">{</block>
+
+    <block type="tp">CLS05_LAG01</block>
+
+    <block type="txt">}</block>
+
+    <block type="txt">,</block>
+
+    <block type="upd">LOCAL_UPDATABLE_KCLS06_IDX01_1</block>
+
+    <block type="txt">,</block>
+
+    <block type="txt">0.3500000000</block>
+
+    <block type="txt">,</block>
+
+    <block type="upd">LOCAL_UPDATABLE_KCLS06_FNC01_1</block>
+
+    <block type="txt">,</block>
+
+    <block type="txt">0.5000000000</block>
+
+    <block type="txt">}</block>
+
+    <block type="txt">*</block>
+
+    <block type="tp">TP_CLS06_LATBKD_S03_OUT</block>
+  </rhs>
+  
 </root>

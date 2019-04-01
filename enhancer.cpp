@@ -75,6 +75,8 @@ void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
     res.push_back(current_token->to_rhs()); // }
 }
 
+// @NOTE: searchindex, searchalpha and interpolation_1d are basically the same
+//        function, can they be merged in one?
 void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
 {
     res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
@@ -219,6 +221,8 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
     res.push_back(current_token->to_rhs()); // }
 }
 
+
+
 unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 {
     tokenizer.save_state();
@@ -241,7 +245,7 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
         }
         else if (*current_token == Token_Type::comma)
         {
-            // nothing to do here
+            // nothing to do here, just a comma
         }
         else
         {
@@ -289,7 +293,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     }
 
     unsigned half_array_len = array_len / 2;
-    unsigned args_counter = 1;
+    unsigned args_counter = 0;
 
     res.push_back(std::make_pair(BlockType::txt, "["));
 
@@ -300,24 +304,29 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
         if (*current_token == Token_Type::function)
         {
             process_function(tokenizer, res);
+            ++args_counter;
         }
-        else if (*current_token == Token_Type::number)
+        else if (*current_token == Token_Type::number ||
+                 *current_token == Token_Type::variable)
         {
             res.push_back(current_token->to_rhs());
-
-            if (args_counter == half_array_len)
-            {
-                res.push_back(std::make_pair(BlockType::txt, "]"));
-                res.push_back(std::make_pair(BlockType::txt, ","));
-                res.push_back(std::make_pair(BlockType::txt, "["));
-
-                tokenizer.next_token(); // skip the ','
-            }
             ++args_counter;
+        }
+        else if (*current_token == Token_Type::comma)
+        {
+            res.push_back(current_token->to_rhs());
         }
         else
         {
-            res.push_back(current_token->to_rhs());
+            throw std::runtime_error("Unexpected token: " + token_type_to_str(current_token->type));
+        }
+        
+        if (args_counter == half_array_len)
+        {
+            res.push_back(std::make_pair(BlockType::txt, "]"));
+            res.push_back(std::make_pair(BlockType::txt, ","));
+            res.push_back(std::make_pair(BlockType::txt, "["));
+            tokenizer.next_token(); // skip ','
         }
 
         current_token = tokenizer.next_token();
@@ -327,6 +336,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 
     res.push_back(current_token->to_rhs()); // }
 }
+
 
 std::tuple<unsigned, unsigned, unsigned>
 get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
@@ -351,9 +361,13 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
         {
             ++args_counter;
         }
+        else if (*current_token == Token_Type::comma)
+        {
+            // nothing to do here, just a comma
+        }
         else
         {
-            // ','
+            throw std::runtime_error("Unexpected token: " + token_type_to_str(current_token->type));
         }
 
         current_token = tokenizer.next_token();
@@ -413,9 +427,8 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
     res.push_back(std::make_pair(BlockType::txt, "["));
     res.push_back(std::make_pair(BlockType::txt, "["));
 
-    for (unsigned elem = 1;
-         elem <= array_len;
-         )
+    unsigned elem = 1;
+    while(elem <= array_len)
     {
         Token *current_token = tokenizer.next_token();
 
@@ -424,7 +437,8 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
             process_function(tokenizer, res);
             ++elem;
         }
-        else if (*current_token == Token_Type::number)
+        else if (*current_token == Token_Type::number || 
+                 *current_token == Token_Type::variable)
         {
             if (elem % cols == 0)
             {
@@ -442,9 +456,13 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
             }
             ++elem;
         }
+        else if (*current_token == Token_Type::comma)
+        {
+            res.push_back(current_token->to_rhs());
+        }
         else
         {
-            res.push_back(tokenizer.current_token()->to_rhs());
+            throw std::runtime_error("Unexpected token: " + token_type_to_str(current_token->type));
         }
     }
 
@@ -456,6 +474,8 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 
     res.push_back(tokenizer.require_next_token(Token_Type::close_curly_bracket)->to_rhs());
 }
+
+
 
 void process_function(Tokenizer &tokenizer, std::list<rhs> &res)
 {
