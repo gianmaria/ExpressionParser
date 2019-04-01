@@ -37,7 +37,7 @@ BlockType str_to_block_type(const std::string &block_type)
     else
     {
         std::string error = "Unknown BlockType: " + block_type;
-        throw std::exception(error.c_str());
+        throw std::runtime_error(error.c_str());
     }
 }
 
@@ -83,7 +83,7 @@ std::list<rhs> get_input_from_xml_file(const char *filename)
             if (!block_type_ || !text_)
             {
                 std::string error = "BlockType or text not found. Line: " + std::to_string(line_num);
-                throw std::exception(error.c_str());
+                throw std::runtime_error(error.c_str());
             }
 
             std::string text(text_);
