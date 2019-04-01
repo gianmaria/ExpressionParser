@@ -1,5 +1,3 @@
-#pragma once
-
 #include "enhancer.h"
 
 #include "common.h"
@@ -7,16 +5,35 @@
 std::map<std::string, std::function<void(Tokenizer&, std::list<rhs>&)>>
 functions_map =
 {
-    {"interpolation",   augment_interpolation_1d},
-    {"lookuptable",     augment_lookuptable},
-    {"searchindex",     augment_searchindex},
-    {"searchalpha",     augment_searchalpha},
-    {"interpolation2D", augment_interpolation_2d},
+   {"interpolation",   augment_interpolation_1d},
+   {"lookuptable",     augment_lookuptable},
+   {"searchindex",     augment_searchindex},
+   {"searchalpha",     augment_searchalpha},
+   {"interpolation2D", augment_interpolation_2d},
 
-    {"sin",             process_simple_function},
-    {"DIVISION",        process_simple_function},
-    {"abs",             process_simple_function},
-    {"switch",          process_simple_function},
+   {"div", process_simple_function},
+   {"power", process_simple_function},
+   {"exponent", process_simple_function},
+   {"minimum", process_simple_function},
+   {"maximum", process_simple_function},
+   {"abs", process_simple_function},
+   {"atan2", process_simple_function},
+   {"cos", process_simple_function},
+   {"sin", process_simple_function},
+   {"acos", process_simple_function},
+   {"asin", process_simple_function},
+   {"sqrt", process_simple_function},
+   {"log", process_simple_function},
+   {"exp", process_simple_function},
+   {"tan", process_simple_function},
+   {"atan", process_simple_function},
+   {"sign", process_simple_function},
+   {"round", process_simple_function},
+   {"fix", process_simple_function},
+   {"ceil", process_simple_function},
+   {"floor", process_simple_function},
+   {"limiter", process_simple_function},
+   {"switch", process_simple_function}
 };
 
 
@@ -56,8 +73,6 @@ void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
     }
 
     res.push_back(current_token->to_rhs()); // }
-
-    int stop = 0;
 }
 
 void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
@@ -83,7 +98,7 @@ void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
         {
             std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
                 " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
-            throw std::exception(error.c_str());
+            throw std::runtime_error(error.c_str());
         }
 
         res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
@@ -130,7 +145,7 @@ void augment_searchindex(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
             "  (Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col) + ")";
-        throw std::exception(error.c_str());
+        throw std::runtime_error(error.c_str());
     }
 
     res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
@@ -176,7 +191,7 @@ void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
             "  (Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col) + ")";
-        throw std::exception(error.c_str());
+        throw std::runtime_error(error.c_str());
     }
 
     res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
@@ -219,7 +234,8 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
             process_function(tokenizer, res);
             ++array_len;
         }
-        else if (*current_token == Token_Type::number)
+        else if (*current_token == Token_Type::number ||
+                 *current_token == Token_Type::variable)
         {
             ++array_len;
         }
@@ -230,8 +246,9 @@ unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
         else
         {
             // error?
-            std::string error = "Something unexpected happen, found token: " + token_type_to_str(current_token->type);
-            throw std::exception(error.c_str());
+            std::string error = "Something unexpected happen, found token: '" + token_type_to_str(current_token->type) +
+                                "' (" + current_token->value + ")";
+            throw std::runtime_error(error.c_str());
         }
 
         current_token = tokenizer.next_token();
@@ -260,7 +277,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     {
         std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
             " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
-        throw std::exception(error.c_str());
+        throw std::runtime_error(error.c_str());
     }
     res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
 
@@ -268,7 +285,7 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
 
     if ((array_len % 2) != 0)
     {
-        throw std::exception("Expected even number of elements in array");
+        throw std::runtime_error("Expected even number of elements in array");
     }
 
     unsigned half_array_len = array_len / 2;
@@ -309,8 +326,6 @@ void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
     res.push_back(std::make_pair(BlockType::txt, "]"));
 
     res.push_back(current_token->to_rhs()); // }
-
-    int stop = 0;
 }
 
 std::tuple<unsigned, unsigned, unsigned>
@@ -331,7 +346,8 @@ get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
             ++args_counter;
             process_function(tokenizer, res);
         }
-        else if (*current_token == Token_Type::number)
+        else if (*current_token == Token_Type::number ||
+                 *current_token == Token_Type::variable)
         {
             ++args_counter;
         }
@@ -376,7 +392,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
         {
             std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(tokenizer.peek_token()->type) +
                 " Line:" + std::to_string(tokenizer.peek_token()->line) + " Col:" + std::to_string(tokenizer.peek_token()->col);
-            throw std::exception(error.c_str());
+            throw std::runtime_error(error.c_str());
         }
 
         res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs());
@@ -391,7 +407,7 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
 
     if (array_len != (rows * cols))
     {
-        throw std::exception("(rows * cols) does not match len of array!");
+        throw std::runtime_error("(rows * cols) does not match len of array!");
     }
 
     res.push_back(std::make_pair(BlockType::txt, "["));
@@ -439,8 +455,6 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
     tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // cols token
 
     res.push_back(tokenizer.require_next_token(Token_Type::close_curly_bracket)->to_rhs());
-
-    int stop = 0;
 }
 
 void process_function(Tokenizer &tokenizer, std::list<rhs> &res)
