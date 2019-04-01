@@ -1063,7 +1063,27 @@
 
     <block type="txt">,</block>
 
-    <block type="tp">CLS05_LAG01_02</block>
+    <block type="txt">(</block>
+
+    <block type="txt">(</block>
+
+    <block type="tp">APSW_FREQ_INT</block>
+
+    <block type="txt">/</block>
+
+    <block type="txt">585.125</block>
+
+    <block type="txt">)</block>
+
+    <block type="txt">*</block>
+
+    <block type="txt">100.0</block>
+
+    <block type="txt">)</block>
+
+    <block type="txt">/</block>
+
+    <block type="txt">3.5</block>
 
     <block type="txt">,</block>
 
@@ -1104,7 +1124,7 @@
   </rhs>
 
 
-  <rhs>
+ <!-- <rhs>
     <block type="txt">lookuptable</block>
 
     <block type="txt">{</block>
@@ -1138,6 +1158,108 @@
     <block type="txt">*</block>
 
     <block type="tp">TP_CLS06_LATBKD_S03_OUT</block>
-  </rhs>
+  </rhs>-->
+
+<!--<rhs>
+<block type="txt">lookuptable</block>
+
+<block type="txt">{</block>
+
+<block type="txt">(</block>
+
+<block type="txt">(</block>
+
+<block type="tp">APSW_FREQ_INT</block>
+
+<block type="txt">/</block>
+
+<block type="txt">585.125</block>
+
+<block type="txt">)</block>
+
+<block type="txt">*</block>
+
+<block type="txt">100.0</block>
+
+<block type="txt">)</block>
+
+<block type="txt">/</block>
+
+<block type="txt">3.5</block>
+
+<block type="txt">,</block>
+
+<block type="txt">80.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">97.5</block>
+
+<block type="txt">,</block>
+
+<block type="txt">99.25</block>
+
+<block type="txt">,</block>
+
+<block type="txt">101.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">102.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">103.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">104.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">105.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">120.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">0.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">0.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">0.5</block>
+
+<block type="txt">,</block>
+
+<block type="txt">1.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">1.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">1.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">0.5</block>
+
+<block type="txt">,</block>
+
+<block type="txt">0.0</block>
+
+<block type="txt">,</block>
+
+<block type="txt">0.0</block>
+
+<block type="txt">}</block>
+</rhs>-->
   
 </root>

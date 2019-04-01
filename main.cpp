@@ -115,8 +115,7 @@ int main()
         std::list<rhs> output = augment(input);
         cout << "OUTPUT:" << endl << output << endl << endl;
 
-
-        std::getc(stdin);
+//        std::getc(stdin);
     }
     catch (const std::exception &e)
     {

@@ -3,14 +3,7 @@
 #include <list>
 #include <string>
 
-enum class BlockType : unsigned int
-{
-    txt,
-    tp,
-    tmp,
-    mem,
-    upd
-};
+#include "SDDParameters.h"
 
 using rhs = std::pair<BlockType, std::string>;
 

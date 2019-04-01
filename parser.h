@@ -35,7 +35,7 @@ struct Token
    Token_Type type = Token_Type::unknown;
    BlockType  block_type = BlockType::txt;
    std::string value = "";
-   float num = 0.0f; // @TODO: usare un optional<float> ?
+   float num = 0.0f;
 
    unsigned line = 1;
    unsigned col = 1;
@@ -58,6 +58,25 @@ struct Token
 
       return ret;
    }
+
+   bool is_operator()
+   {
+      bool res = (type == Token_Type::plus ||
+                  type == Token_Type::minus ||
+                  type == Token_Type::times ||
+                  type == Token_Type::division);
+
+      return res;
+   }
+
+   bool is_parenthesis()
+   {
+      bool res = (type == Token_Type::open_parenthesis ||
+                  type == Token_Type::close_parenthesis);
+
+      return res;
+   }
+
 };
 
 struct Tokenizer
@@ -144,7 +163,8 @@ struct Tokenizer
       {
          std::string error = "Expected " + token_type_to_str(type) + " " +
                              "found " + token_type_to_str(token->type) + "  " +
-                             "Line:" + std::to_string(token->line) + " Col:" + std::to_string(token->col);
+                             "Line:" + std::to_string(token->line) + " Col:" + std::to_string(token->col) + "\n" +
+                             "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
          throw std::runtime_error(error.c_str());
       }
 
