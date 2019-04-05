@@ -19,6 +19,7 @@
 using std::cout;
 using std::endl;
 
+#include <QDebug>
 
 #include "tinyxml2.h"
 using namespace tinyxml2;
@@ -29,100 +30,107 @@ using namespace tinyxml2;
 
 BlockType str_to_block_type(const std::string &block_type)
 {
-    if (block_type == "txt") { return BlockType::txt; }
-    else if (block_type == "tp") { return BlockType::tp; }
-    else if (block_type == "tmp") { return BlockType::tmp; }
-    else if (block_type == "mem") { return BlockType::mem; }
-    else if (block_type == "upd") { return BlockType::upd; }
-    else
-    {
-        std::string error = "Unknown BlockType: " + block_type;
-        throw std::runtime_error(error.c_str());
-    }
+   if (block_type == "txt") { return BlockType::txt; }
+   else if (block_type == "tp") { return BlockType::tp; }
+   else if (block_type == "tmp") { return BlockType::tmp; }
+   else if (block_type == "mem") { return BlockType::mem; }
+   else if (block_type == "upd") { return BlockType::upd; }
+   else
+   {
+      std::string error = "Unknown BlockType: " + block_type;
+      throw std::runtime_error(error.c_str());
+   }
 }
 
-std::ostream &operator<<(std::ostream &os, const std::list<rhs> &list) 
+std::ostream &operator<<(std::ostream &os, const std::list<rhs_instr> &list)
 {
-    for (const rhs &elem : list)
-    {
-        //cout << elem.second << " Type: " << block_type_to_str(elem.first) << endl;
-        cout << elem.second << " ";
-    }
-    cout << endl;
+   for (const rhs_instr &elem : list)
+   {
+      //cout << elem.second << " Type: " << block_type_to_str(elem.first) << endl;
+      cout << elem.second << " ";
+   }
+   cout << endl;
 
-    return os;
+   return os;
 }
 
-std::list<rhs> get_input_from_xml_file(const char *filename)
+std::list<rhs_instr> get_input_from_xml_file(const char *filename)
 {
-    std::list<rhs> input;
+   XMLDocument doc;
+   std::list<rhs_instr> input;
 
-    XMLDocument doc;
-
-    if (doc.LoadFile(filename) != XML_SUCCESS)
-    {
-        cout << "can't load file: '" << filename << "'" << endl;
-        return input;
-    }
+   if (doc.LoadFile(filename) != XML_SUCCESS)
+   {
+      cout << "can't load file: '" << filename << "'" << endl;
+      return input;
+   }
 
 
-    const XMLElement *root = doc.FirstChildElement();
-    const XMLElement *rhs = root->FirstChildElement();
+   const XMLElement *root = doc.FirstChildElement();
+   const XMLElement *rhs = root->FirstChildElement();
 
-    while (rhs)
-    {
-        const XMLElement *block = rhs->FirstChildElement();
-        
-        while (block)
-        {
-            const char *block_type_ = block->Attribute("type");
-            const char *text_ = block->GetText();
+   while (rhs)
+   {
+      input.clear();
+      const XMLElement *block = rhs->FirstChildElement();
 
-            int line_num = block->GetLineNum();
+      while (block)
+      {
+         const char *block_type_ = block->Attribute("type");
+         const char *text_ = block->GetText();
 
-            if (!block_type_ || !text_)
-            {
-                std::string error = "BlockType or text not found. Line: " + std::to_string(line_num);
-                throw std::runtime_error(error.c_str());
-            }
+         int line_num = block->GetLineNum();
 
-            std::string text(text_);
-            BlockType block_type = str_to_block_type(block_type_);
+         if (!block_type_ || !text_)
+         {
+            std::string error = "BlockType or text not found. Line: " + std::to_string(line_num);
+            throw std::runtime_error(error.c_str());
+         }
 
-            auto pair = std::make_pair(block_type, text);
+         std::string text(text_);
+         BlockType block_type = str_to_block_type(block_type_);
 
-            input.push_back(pair);
+         auto pair = std::make_pair(block_type, text);
 
-            block = block->NextSiblingElement();
-        }
+         input.push_back(pair);
 
-        rhs = rhs->NextSiblingElement();
-    }
+         block = block->NextSiblingElement();
+      }
 
-    return input;
+      cout << "INPUT:" << endl << input << endl << endl;
+      std::list<rhs_instr> output = augment(input);
+      cout << "OUTPUT:" << endl << output << endl << endl;
+
+      rhs = rhs->NextSiblingElement();
+   }
+
+   return input;
 }
 
 int main()
 {
-    // R"delimiter( raw_characters )delimiter"	
-    // std::string input_xml_str = R"FOO(raw string yo!)FOO";
+   // R"delimiter( raw_characters )delimiter"
+   // std::string input_xml_str = R"FOO(raw string yo!)FOO";
 
-    try
-    {
-        std::list<rhs> input = get_input_from_xml_file("test_001.xml");
-        cout << "INPUT:" << endl << input << endl << endl;
+   try
+   {
+#if 1
+      get_input_from_xml_file("test_001.xml");
+#else
+      std::list<rhs_instr> input = get_input_from_xml_file("test_001.xml");
+      cout << "INPUT:" << endl << input << endl << endl;
 
-        std::list<rhs> output = augment(input);
-        cout << "OUTPUT:" << endl << output << endl << endl;
+      std::list<rhs_instr> output = augment(input);
+      cout << "OUTPUT:" << endl << output << endl << endl;
+#endif
+      //        std::getc(stdin);
+   }
+   catch (const std::exception &e)
+   {
+      std::cout << endl << endl << "[EXCEPTION] " << e.what() << endl;
+      int stop = 0;
+   }
 
-//        std::getc(stdin);
-    }
-    catch (const std::exception &e)
-    {
-        std::cout << endl << endl << "[EXCEPTION] " << e.what() << endl;
-        int stop = 0;
-    }
-
-    return 0;
+   return 0;
 }
 

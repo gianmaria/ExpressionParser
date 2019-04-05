@@ -91,7 +91,7 @@ struct Tokenizer
    {
       if (old_token_idx != 0)
       {
-         throw std::runtime_error("Only one save at a time!");
+         throw enhancer_exception("Only one save at a time!");
       }
 
       old_token_idx = current_token_idx;
@@ -165,7 +165,7 @@ struct Tokenizer
                              "found " + token_type_to_str(token->type) + "  " +
                              "Line:" + std::to_string(token->line) + " Col:" + std::to_string(token->col) + "\n" +
                              "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
-         throw std::runtime_error(error.c_str());
+         throw enhancer_exception(error);
       }
 
       return token;

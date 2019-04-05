@@ -1,10 +1,10 @@
 TEMPLATE = app
 
-CONFIG += console
-CONFIG += c++11
-CONFIG += warn_on
 CONFIG -= app_bundle
-CONFIG -= qt
+CONFIG += console c++11 warn_on c++14
+
+QT += core
+
 
 SOURCES += ../../main.cpp \
             ../../enhancer.cpp \

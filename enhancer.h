@@ -17,7 +17,7 @@ functions_map;
 
 bool is_function(const std::string &fn);
 
-void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res);
+void process_simple_function(Tokenizer &tokenizer, std::list<rhs> &res);
 
 void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res);
 
@@ -37,6 +37,6 @@ void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res);
 
 void process_function(Tokenizer &tokenizer, std::list<rhs> &res);
 
-std::list<rhs>
-augment(const std::list<rhs> &input);
+
+std::list<rhs> augment(const std::list<rhs> &input);
 

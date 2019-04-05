@@ -2,571 +2,564 @@
 
 #include "common.h"
 
-std::map<std::string, std::function<void(Tokenizer&, std::list<rhs>&)>>
+std::map<std::string, std::function<void(Tokenizer&, std::list<rhs_instr>&)>>
 functions_map =
 {
-   {"interpolation",   augment_interpolation_1d},
-   {"lookuptable",     augment_lookuptable},
-   {"searchindex",     augment_searchindex},
-   {"searchalpha",     augment_searchalpha},
-   {"interpolation2D", augment_interpolation_2d},
+{"interpolation",   augment_interpolation_1d},
+{"lookuptable",     augment_lookuptable},
+{"searchindex",     augment_searchindex},
+{"searchalpha",     augment_searchalpha},
+{"interpolation2D", augment_interpolation_2d},
 
-   {"div", process_simple_function},
-   {"power", process_simple_function},
-   {"exponent", process_simple_function},
-   {"minimum", process_simple_function},
-   {"maximum", process_simple_function},
-   {"abs", process_simple_function},
-   {"atan2", process_simple_function},
-   {"cos", process_simple_function},
-   {"sin", process_simple_function},
-   {"acos", process_simple_function},
-   {"asin", process_simple_function},
-   {"sqrt", process_simple_function},
-   {"log", process_simple_function},
-   {"exp", process_simple_function},
-   {"tan", process_simple_function},
-   {"atan", process_simple_function},
-   {"sign", process_simple_function},
-   {"round", process_simple_function},
-   {"fix", process_simple_function},
-   {"ceil", process_simple_function},
-   {"floor", process_simple_function},
-   {"limiter", process_simple_function},
-   {"switch", process_simple_function}
-};
+{"div", process_simple_function},
+{"power", process_simple_function},
+{"exponent", process_simple_function},
+{"minimum", process_simple_function},
+{"maximum", process_simple_function},
+{"abs", process_simple_function},
+{"atan2", process_simple_function},
+{"cos", process_simple_function},
+{"sin", process_simple_function},
+{"acos", process_simple_function},
+{"asin", process_simple_function},
+{"sqrt", process_simple_function},
+{"log", process_simple_function},
+{"exp", process_simple_function},
+{"tan", process_simple_function},
+{"atan", process_simple_function},
+{"sign", process_simple_function},
+{"round", process_simple_function},
+{"fix", process_simple_function},
+{"ceil", process_simple_function},
+{"floor", process_simple_function},
+{"limiter", process_simple_function},
+{"switch", process_simple_function}
+      };
 
 
 bool is_function(const std::string &fn)
 {
-    bool res = false;
+   bool res = false;
 
-    auto it = functions_map.find(fn);
+   auto it = functions_map.find(fn);
 
-    if (it != functions_map.end())
-    {
-        res = true;
-    }
+   if (it != functions_map.end())
+   {
+      res = true;
+   }
 
-    return res;
+   return res;
 }
 
-void process_simple_function(Tokenizer& tokenizer, std::list<rhs> &res)
+void process_simple_function(Tokenizer& tokenizer, std::list<rhs_instr> &res)
 {
-    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
-    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+   res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    Token *current_token = tokenizer.next_token();
+   Token *current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            process_function(tokenizer, res);
-        }
-        else
-        {
-            res.push_back(current_token->to_rhs());
-        }
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(current_token->to_rhs()); // }
+   res.push_back(current_token->to_rhs()); // }
 }
 
 // @NOTE: searchindex, searchalpha and interpolation_1d are basically the same
-//        function, can they be merged in one?
-void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs> &res)
+//        function, can they be merged into one?
+void augment_interpolation_1d(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
-    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+   res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    unsigned args_before_array = 2;
-    for (unsigned arg = 1;
-         arg <= args_before_array;
-         ++arg)
-    {
-       Token *current_token = tokenizer.next_token();
+   unsigned args_before_array = 2;
+   for (unsigned arg = 1;
+        arg <= args_before_array;
+        ++arg)
+   {
+      Token *current_token = tokenizer.next_token();
 
-       while (*current_token != Token_Type::comma)
-       {
-          if (*current_token == Token_Type::function)
-          {
-             process_function(tokenizer, res);
-          }
-          else if (*current_token == Token_Type::variable ||
-                   *current_token == Token_Type::number   ||
-                   current_token->is_operator()           ||
-                   current_token->is_parenthesis())
-          {
-             res.push_back(current_token->to_rhs());
-          }
-          else
-          {
-             std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(current_token->type) +
-                                 " Line:" + std::to_string(current_token->line) + " Col:" + std::to_string(current_token->col) + "\n"
-                                 "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
-              throw std::runtime_error(error.c_str());
-          }
-
-          current_token = tokenizer.next_token();
-       }
-
-       res.push_back(current_token->to_rhs()); // ','
-    }
-
-    res.push_back(std::make_pair(BlockType::txt, "["));
-
-    Token *current_token = tokenizer.next_token();
-
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
+      while (*current_token != Token_Type::comma)
+      {
+         if (*current_token == Token_Type::function)
+         {
             process_function(tokenizer, res);
-        }
-        else
-        {
+         }
+         else
+         {
             res.push_back(current_token->to_rhs());
-        }
+         }
 
-        current_token = tokenizer.next_token();
-    }
+         current_token = tokenizer.next_token();
+      }
 
-    res.push_back(std::make_pair(BlockType::txt, "]"));
+      res.push_back(current_token->to_rhs()); // ','
+   }
 
-    res.push_back(current_token->to_rhs()); // }
+   res.push_back(std::make_pair(BlockType::txt, "["));
+
+   Token *current_token = tokenizer.next_token();
+
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
+
+      current_token = tokenizer.next_token();
+   }
+
+   res.push_back(std::make_pair(BlockType::txt, "]"));
+
+   res.push_back(current_token->to_rhs()); // }
 }
 
-void augment_searchindex(Tokenizer &tokenizer, std::list<rhs> &res)
+void augment_searchindex(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
-    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+   res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    Token *current_token = tokenizer.next_token();
+   Token *current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::comma)
-    {
-       if (*current_token == Token_Type::function)
-       {
-          process_function(tokenizer, res);
-       }
-       else if (*current_token == Token_Type::variable ||
-                *current_token == Token_Type::number   ||
-                current_token->is_operator()           ||
-                current_token->is_parenthesis())
-       {
-          res.push_back(current_token->to_rhs());
-       }
-       else
-       {
-          std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(current_token->type) +
-                              " Line:" + std::to_string(current_token->line) + " Col:" + std::to_string(current_token->col) + "\n"
-                              "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
-           throw std::runtime_error(error.c_str());
-       }
+   while (*current_token != Token_Type::comma)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-       current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(current_token->to_rhs()); // ','
+   res.push_back(current_token->to_rhs()); // ','
 
-    res.push_back(std::make_pair(BlockType::txt, "["));
+   res.push_back(std::make_pair(BlockType::txt, "["));
 
-    current_token = tokenizer.next_token();
+   current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            process_function(tokenizer, res);
-        }
-        else
-        {
-            res.push_back(current_token->to_rhs());
-        }
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(std::make_pair(BlockType::txt, "]"));
+   res.push_back(std::make_pair(BlockType::txt, "]"));
 
-    res.push_back(current_token->to_rhs()); // }
+   res.push_back(current_token->to_rhs()); // }
 }
 
-void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs> &res)
+void augment_searchalpha(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
-    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+   res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    Token *current_token = tokenizer.next_token();
+   Token *current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::comma)
-    {
-       if (*current_token == Token_Type::function)
-       {
-          process_function(tokenizer, res);
-       }
-       else if (*current_token == Token_Type::variable ||
-                *current_token == Token_Type::number   ||
-                current_token->is_operator()           ||
-                current_token->is_parenthesis())
-       {
-          res.push_back(current_token->to_rhs());
-       }
-       else
-       {
-          std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(current_token->type) +
-                              " Line:" + std::to_string(current_token->line) + " Col:" + std::to_string(current_token->col) + "\n"
-                              "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
-           throw std::runtime_error(error.c_str());
-       }
+   while (*current_token != Token_Type::comma)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-       current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(current_token->to_rhs()); // ','
+   res.push_back(current_token->to_rhs()); // ','
 
-    res.push_back(std::make_pair(BlockType::txt, "["));
+   res.push_back(std::make_pair(BlockType::txt, "["));
 
-    current_token = tokenizer.next_token();
+   current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            process_function(tokenizer, res);
-        }
-        else
-        {
-            res.push_back(current_token->to_rhs());
-        }
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(std::make_pair(BlockType::txt, "]"));
+   res.push_back(std::make_pair(BlockType::txt, "]"));
 
-    res.push_back(current_token->to_rhs()); // }
+   res.push_back(current_token->to_rhs()); // }
 }
 
 
 
-unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
+unsigned array_len_lookuptable(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    tokenizer.save_state();
+   tokenizer.save_state();
 
-    unsigned array_len = 0;
+   unsigned array_len = 0;
 
-    Token *current_token = tokenizer.next_token();
+   Token *current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            process_function(tokenizer, res);
-            ++array_len;
-        }
-        else if (*current_token == Token_Type::number ||
-                 *current_token == Token_Type::variable)
-        {
-            ++array_len;
-        }
-        else if (*current_token == Token_Type::comma)
-        {
-            // nothing to do here, just a comma
-        }
-        else
-        {
-            // error?
-            std::string error = "Something unexpected happen, found token: '" + token_type_to_str(current_token->type) +
-                                "' (" + current_token->value + ")";
-            throw std::runtime_error(error.c_str());
-        }
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else if (*current_token == Token_Type::comma)
+      {
+         ++array_len;
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
+   ++array_len; // for the last argument without comma at the end
 
-    tokenizer.restore_state();
+   tokenizer.restore_state();
 
-    return array_len;
+   return array_len;
 }
 
-void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs> &res)
+void augment_lookuptable(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
-    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+   res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    Token *current_token = tokenizer.next_token();
+   Token *current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::comma)
-    {
-       if (*current_token == Token_Type::function)
-       {
-          process_function(tokenizer, res);
-       }
-       else if (*current_token == Token_Type::variable ||
-                *current_token == Token_Type::number   ||
-                current_token->is_operator()           ||
-                current_token->is_parenthesis())
-       {
-          res.push_back(current_token->to_rhs());
-       }
-       else
-       {
-          std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(current_token->type) +
-                              " Line:" + std::to_string(current_token->line) + " Col:" + std::to_string(current_token->col) + "\n"
-                              "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
-           throw std::runtime_error(error.c_str());
-       }
+   while (*current_token != Token_Type::comma)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-       current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(current_token->to_rhs()); // ','
+   res.push_back(current_token->to_rhs()); // ','
 
-    unsigned array_len = array_len_lookuptable(tokenizer, res);
+   unsigned array_len = array_len_lookuptable(tokenizer, res);
 
-    if ((array_len % 2) != 0)
-    {
-        throw std::runtime_error("Expected even number of elements in array");
-    }
+   if ((array_len % 2) != 0)
+   {
+      throw enhancer_exception("Expected even number of elements in function lookuptable");
+   }
 
-    unsigned half_array_len = array_len / 2;
-    unsigned args_counter = 0;
+   unsigned half_array_len = array_len / 2;
+   unsigned args_counter = 0;
 
-    res.push_back(std::make_pair(BlockType::txt, "["));
+   res.push_back(std::make_pair(BlockType::txt, "["));
 
-    current_token = tokenizer.next_token();
+   current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            process_function(tokenizer, res);
-            ++args_counter;
-        }
-        else if (*current_token == Token_Type::number ||
-                 *current_token == Token_Type::variable)
-        {
-            res.push_back(current_token->to_rhs());
-            ++args_counter;
-        }
-        else if (*current_token == Token_Type::comma)
-        {
-            res.push_back(current_token->to_rhs());
-        }
-        else
-        {
-            throw std::runtime_error("Unexpected token: " + token_type_to_str(current_token->type));
-        }
-        
-        if (args_counter == half_array_len)
-        {
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else if (*current_token == Token_Type::comma)
+      {
+         ++args_counter;
+
+         if (args_counter == half_array_len)
+         {
             res.push_back(std::make_pair(BlockType::txt, "]"));
             res.push_back(std::make_pair(BlockType::txt, ","));
             res.push_back(std::make_pair(BlockType::txt, "["));
-            tokenizer.next_token(); // skip ','
-        }
+         }
+         else
+         {
+            res.push_back(current_token->to_rhs());
+         }
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    res.push_back(std::make_pair(BlockType::txt, "]"));
+   res.push_back(std::make_pair(BlockType::txt, "]"));
 
-    res.push_back(current_token->to_rhs()); // }
+   res.push_back(current_token->to_rhs()); // }
 }
 
 
 std::tuple<unsigned, unsigned, unsigned>
-get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
+get_args_for_interpolation_2d(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    tokenizer.save_state();
+   tokenizer.save_state();
 
-    unsigned rows = 0;
-    unsigned cols = 0;
-    unsigned args_counter = 0;
+   unsigned rows = 0;
+   unsigned cols = 0;
+   unsigned args_counter = 0;
 
-    Token *current_token = tokenizer.next_token();
+   Token *current_token = tokenizer.next_token();
 
-    while (*current_token != Token_Type::close_curly_bracket)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            ++args_counter;
-            process_function(tokenizer, res);
-        }
-        else if (*current_token == Token_Type::number ||
-                 *current_token == Token_Type::variable)
-        {
-            ++args_counter;
-        }
-        else if (*current_token == Token_Type::comma)
-        {
-            // nothing to do here, just a comma
-        }
-        else
-        {
-            throw std::runtime_error("Unexpected token: " + token_type_to_str(current_token->type));
-        }
+   while (*current_token != Token_Type::close_curly_bracket)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else if (*current_token == Token_Type::comma)
+      {
+         ++args_counter;
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
+   ++args_counter; // for the last argument without comma at the end
 
-    cols = (unsigned)tokenizer.prev_token(1)->num;
-    rows = (unsigned)tokenizer.prev_token(3)->num;
+   cols = (unsigned)tokenizer.prev_token(1)->num;
+   rows = (unsigned)tokenizer.prev_token(3)->num;
 
-    args_counter -= 2; // last two token are cols number and rows number
+   args_counter -= 2; // last two token are the number of cols and rows
 
-    tokenizer.restore_state();
+   tokenizer.restore_state();
 
-    return std::make_tuple(args_counter, rows, cols);
+   return std::make_tuple(args_counter, rows, cols);
 }
 
-void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs> &res)
+void augment_interpolation_2d(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
-    res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.current_token()->to_rhs()); // name of the function
+   res.push_back(tokenizer.require_next_token(Token_Type::open_curly_bracket)->to_rhs());
 
-    unsigned num_params_before_array = 4;
-    for (unsigned param = 1;
-         param <= num_params_before_array;
-         ++param)
-    {
-       Token *current_token = tokenizer.next_token();
+   unsigned num_params_before_array = 4;
 
-       while (*current_token != Token_Type::comma)
-       {
-          if (*current_token == Token_Type::function)
-          {
-             process_function(tokenizer, res);
-          }
-          else if (*current_token == Token_Type::variable ||
-                   *current_token == Token_Type::number   ||
-                   current_token->is_operator()           ||
-                   current_token->is_parenthesis())
-          {
-             res.push_back(current_token->to_rhs());
-          }
-          else
-          {
-             std::string error = "Expected token: *variable* of *function*,  found: " + token_type_to_str(current_token->type) +
-                                 " Line:" + std::to_string(current_token->line) + " Col:" + std::to_string(current_token->col) + "\n"
-                                 "File: " + __FILE__ + " Line: " + std::to_string(__LINE__);
-              throw std::runtime_error(error.c_str());
-          }
+   for (unsigned param = 1;
+        param <= num_params_before_array;
+        ++param)
+   {
+      Token *current_token = tokenizer.next_token();
 
-          current_token = tokenizer.next_token();
-       }
-
-       res.push_back(current_token->to_rhs()); // ','
-    }
-
-    std::tuple<unsigned, unsigned, unsigned> args_interpolation_2d = get_args_for_interpolation_2d(tokenizer, res);
-
-    unsigned array_len, rows, cols;
-    array_len = std::get<0>(args_interpolation_2d);
-    rows = std::get<1>(args_interpolation_2d);
-    cols = std::get<2>(args_interpolation_2d);
-
-    if (array_len != (rows * cols))
-    {
-        throw std::runtime_error("(rows * cols) does not match len of array!");
-    }
-
-    res.push_back(std::make_pair(BlockType::txt, "["));
-    res.push_back(std::make_pair(BlockType::txt, "["));
-
-    unsigned elem = 1;
-    while(elem <= array_len)
-    {
-        Token *current_token = tokenizer.next_token();
-
-        if (*current_token == Token_Type::function)
-        {
+      while (*current_token != Token_Type::comma)
+      {
+         if (*current_token == Token_Type::function)
+         {
             process_function(tokenizer, res);
-            ++elem;
-        }
-        else if (*current_token == Token_Type::number || 
-                 *current_token == Token_Type::variable)
-        {
-            if (elem % cols == 0)
+         }
+         else
+         {
+            res.push_back(current_token->to_rhs());
+         }
+
+         current_token = tokenizer.next_token();
+      }
+
+      res.push_back(current_token->to_rhs()); // ','
+   }
+
+   std::tuple<unsigned, unsigned, unsigned> args_interpolation_2d = get_args_for_interpolation_2d(tokenizer, res);
+
+   unsigned array_len, rows, cols;
+   array_len = std::get<0>(args_interpolation_2d);
+   rows = std::get<1>(args_interpolation_2d);
+   cols = std::get<2>(args_interpolation_2d);
+
+   if (array_len != (rows * cols))
+   {
+      throw enhancer_exception("(rows * cols) does not match len of array in interpolation2d!");
+   }
+
+   res.push_back(std::make_pair(BlockType::txt, "["));
+   res.push_back(std::make_pair(BlockType::txt, "["));
+
+   unsigned elem_counter = 1;
+
+   Token *current_token = tokenizer.next_token();
+
+   while(elem_counter <= array_len)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else if (*current_token == Token_Type::comma)
+      {
+         if ((elem_counter % cols == 0) &&
+             (elem_counter != array_len)) // is not the last element
+         {
+            res.push_back(std::make_pair(BlockType::txt, "]"));
+            res.push_back(current_token->to_rhs()); // ,
+            res.push_back(std::make_pair(BlockType::txt, "["));
+         }
+         else
+         {
+            if (elem_counter != array_len) // is not the last element
             {
-                res.push_back(current_token->to_rhs());
-                if (elem != array_len)
-                {
-                    res.push_back(std::make_pair(BlockType::txt, "]"));
-                    res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs()); // ,
-                    res.push_back(std::make_pair(BlockType::txt, "["));
-                }
+               res.push_back(current_token->to_rhs()); // ,
             }
             else
             {
-                res.push_back(tokenizer.current_token()->to_rhs());
+               int stop = 0;
             }
-            ++elem;
-        }
-        else if (*current_token == Token_Type::comma)
-        {
+         }
+         ++elem_counter;
+      }
+      else
+      {
+         res.push_back(current_token->to_rhs());
+      }
+
+      current_token = tokenizer.next_token();
+   }
+
+   res.push_back(std::make_pair(BlockType::txt, "]"));
+   res.push_back(std::make_pair(BlockType::txt, "]"));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0 // old method to delete
+   // interpolation2D(x,y,z,k,a11,a12,a13,b11,b12,b13,2,3}->
+   //   interpolation2D(x,y,z,k,[[a11,a12,a13],[b11,b12,b13]]}
+   while(elem_counter <= array_len)
+   {
+      Token *current_token = tokenizer.next_token();
+
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+         ++elem_counter;
+      }
+      else if (*current_token == Token_Type::number ||
+               *current_token == Token_Type::variable)
+      {
+         if (elem_counter % cols == 0)
+         {
             res.push_back(current_token->to_rhs());
-        }
-        else
-        {
-            throw std::runtime_error("Unexpected token: " + token_type_to_str(current_token->type));
-        }
-    }
+            if (elem_counter != array_len)
+            {
+               res.push_back(std::make_pair(BlockType::txt, "]"));
+               res.push_back(tokenizer.require_next_token(Token_Type::comma)->to_rhs()); // ,
+               res.push_back(std::make_pair(BlockType::txt, "["));
+            }
+         }
+         else
+         {
+            res.push_back(tokenizer.current_token()->to_rhs());
+         }
+         ++elem_counter;
+      }
+      else if (*current_token == Token_Type::comma)
+      {
+         res.push_back(current_token->to_rhs());
+      }
+      else
+      {
+         throw enhancer_exception("Unexpected token: " + token_type_to_str(current_token->type));
+      }
+   }
 
-    res.push_back(std::make_pair(BlockType::txt, "]"));
-    res.push_back(std::make_pair(BlockType::txt, "]"));
+   res.push_back(std::make_pair(BlockType::txt, "]"));
+   res.push_back(std::make_pair(BlockType::txt, "]"));
+#endif
 
-    tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // rows token
-    tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // cols token
+   tokenizer.require_next_token(Token_Type::comma); tokenizer.require_next_token(Token_Type::number); // cols token
 
-    res.push_back(tokenizer.require_next_token(Token_Type::close_curly_bracket)->to_rhs());
+   res.push_back(tokenizer.require_next_token(Token_Type::close_curly_bracket)->to_rhs());
 }
 
 
 
-void process_function(Tokenizer &tokenizer, std::list<rhs> &res)
+void process_function(Tokenizer &tokenizer, std::list<rhs_instr> &res)
 {
-    Token *token = tokenizer.current_token();
+   Token *token = tokenizer.current_token();
 
-    const std::string &function_name = token->value;
+   const std::string &function_name = token->value;
 
-    auto it = functions_map.find(function_name);
+   auto it = functions_map.find(function_name);
 
-    if (it != functions_map.end())
-    {
-        auto func = it->second;
-        func(tokenizer, res);
-    }
+   if (it != functions_map.end())
+   {
+      auto func = it->second;
+      func(tokenizer, res);
+   }
 }
 
-std::list<rhs>
-augment(const std::list<rhs> &input)
+std::list<rhs_instr>
+augment(const std::list<rhs_instr> &input)
 {
-    Tokenizer tokenizer = parse(input);
+   Tokenizer tokenizer = parse(input);
 
-    std::list<rhs> res;
+   std::list<rhs_instr> res;
 
-    Token *current_token = tokenizer.current_token();
+   Token *current_token = tokenizer.current_token();
 
-    while (*current_token != Token_Type::end_of_tokens)
-    {
-        if (*current_token == Token_Type::function)
-        {
-            process_function(tokenizer, res);
-        }
-        else
-        {
-            rhs rhs = std::make_pair(current_token->block_type, current_token->value);
-            res.push_back(rhs);
-        }
+   while (*current_token != Token_Type::end_of_tokens)
+   {
+      if (*current_token == Token_Type::function)
+      {
+         process_function(tokenizer, res);
+      }
+      else
+      {
+         rhs_instr rhs = std::make_pair(current_token->block_type, current_token->value);
+         res.push_back(rhs);
+      }
 
-        current_token = tokenizer.next_token();
-    }
+      current_token = tokenizer.next_token();
+   }
 
-    return res;
+   return res;
 }
 

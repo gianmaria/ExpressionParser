@@ -33,7 +33,7 @@ std::string token_type_to_str(const Token_Type &type)
       case Token_Type::close_curly_bracket: return "close_curly_bracket";
       case Token_Type::end_of_tokens: return "end_of_tokens";
       case Token_Type::unknown: return "unknown";
-      default: throw std::runtime_error("Unknown token type!");
+      default: throw enhancer_exception("Unknown token type!");
    }
 }
 
@@ -126,7 +126,7 @@ Token tokenize(const rhs &elem)
       {
          std::string error = "Invalid token: '" + input + "'" +
                              " Line:" + std::to_string(token.line) + " Col:" + std::to_string(token.col);
-         throw std::runtime_error(error.c_str());
+         throw enhancer_exception(error);
       }
    }
 
